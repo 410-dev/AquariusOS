@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# Reference: https://www.reddit.com/r/btrfs/comments/1dq04qx/convert_ubuntu_btrfs_installation_into_subvolumes/
+
+set -e
+source /opt/aqua/sys/lib/shell/guarding.shx
+
+# Add btrfs module to grub
+grub-install --modules=btrfs
+
+# Check process mark file. If not exists, proceed. If found, this means reboot performed, so proceed.
+
+if ! is_marked "reboot-performed-after-fstab-and-grub-config"; then
+    # Add btrfs module to grub
+    grub-install --modules=btrfs
+
+    # Create subvolumes
+    btrfs subvolume snapshot / /@
+    btrfs subvolume create /@home
+
+    # Update fstab and move home data
+    python3 "$1/fstab_editor.py" "$(findmnt --output=UUID --noheadings --target=/)"
+    mv /@/home/* /@home/
+
+    # Update grub to boot from new subvolumes
+    python3 "$1/grub_editor_stg1.py"
+    update-grub
+
+    ### FROM GEMINI
+    ### Updating grub without rebooting
+    echo "Backing up current GRUB configuration..."
+    cp /etc/default/grub /etc/default/grub.bak
+    cp /boot/grub/grub.cfg /boot/grub/grub.cfg.bak
+
+    # 1. Add rootflags=subvol=@ to /etc/default/grub
+    # We look for the GRUB_CMDLINE_LINUX_DEFAULT line.
+    # If "rootflags=subvol=@" is not already there, we inject it inside the quotes.
+    if grep -q "rootflags=subvol=@" /etc/default/grub; then
+        echo "rootflags already present in /etc/default/grub."
+    else
+        echo "Adding rootflags to /etc/default/grub..."
+        sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="rootflags=subvol=@ /' /etc/default/grub
+    fi
+
+    # 2. Regenerate the GRUB config file
+    # This applies the flags we just added.
+    echo "Regenerating GRUB configuration..."
+    if command -v update-grub &> /dev/null; then
+        update-grub
+    else
+        # Fallback for non-Debian/Ubuntu systems (Arch, Fedora, etc.)
+        grub-mkconfig -o /boot/grub/grub.cfg
+    fi
+
+    # 3. Force the /@/boot path adjustment (The 'linux' and 'initrd' lines)
+    # Standard GRUB generation might write '/boot/...' instead of '/@/boot/...'
+    # We use sed to patch the final grub.cfg file to match your manual instruction requirements.
+
+    echo "Patching paths to include subvolume /@/..."
+
+    # Replace "linux /boot/" with "linux /@/boot/"
+    sed -i 's|linux[[:space:]]*/boot/|linux /@/boot/|g' /boot/grub/grub.cfg
+    sed -i 's|linux[[:space:]]*/vmlinuz|linux /@/vmlinuz|g' /boot/grub/grub.cfg
+
+    # Replace "initrd /boot/" with "initrd /@/boot/"
+    sed -i 's|initrd[[:space:]]*/boot/|initrd /@/boot/|g' /boot/grub/grub.cfg
+    sed -i 's|initrd[[:space:]]*/initrd|initrd /@/initrd|g' /boot/grub/grub.cfg
+
+    ### END GEMINI
+    # Mark that reboot is performed after fstab and grub config
+    echo "After reboot, run this enablement again."
+    echo "Press enter to reboot now..."
+    read dummy
+    mark "reboot-performed-after-fstab-and-grub-config"
+    systemctl reboot
+    exit 9 # Intentional exit with non-zero to indicate reboot
+else
+    # At this point, it should see mark file.
+
+    # Verify subvolume boot
+    if [[ ! -z "$(mount | grep ' / ' | grep 'subvol=/@')" ]]; then
+        echo "System is already booted from btrfs subvolume /@."
+    else
+        echo "Error: System is not booted from btrfs subvolume /@. Please check the configuration."
+        exit 1
+    fi
+
+    update-grub
+    grub-install --efi-directory=/boot/efi
+
+    # Verify subvolumes
+    DEVICE_NAME=$(findmnt --noheadings --output=SOURCE --target=/)
+    mkdir -p /tmp/subvolmnt
+    mount "$DEVICE_NAME" /tmp/subvolmnt
+    if [[ -z "$(ls -1 /tmp/subvolmnt | grep '@home')" ]]; then
+        echo "Error: Subvolumes /@ and /@home not found. Please check the configuration."
+        umount /tmp/subvolmnt
+        rmdir /tmp/subvolmnt
+        exit 1
+    fi
+
+    return_to_dir=$(pwd)
+    cd /tmp/subvolmnt
+    shopt -s extglob
+    rm -rf !(@*)
+    shopt -u extglob
+    cd "$return_to_dir"
+    umount /tmp/subvolmnt
+
+    unmark "reboot-performed-after-fstab-and-grub-config"
+
+    exit 0
+fi

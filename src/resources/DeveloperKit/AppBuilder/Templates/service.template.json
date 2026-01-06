@@ -1,0 +1,64 @@
+{
+    "TemplateName": "AquariusOS Service Template",
+    "TemplateVersion": 1,
+    "InputRequirements": {
+        "id": {
+            "display": "Service ID",
+            "value": "com.example.service.my_service",
+            "type": "str"
+        },
+        "libs-vscode": {
+            "display": "VSCode development settings",
+            "value": "{\"python.analysis.extraPaths\": [\"/usr/share/lib/python/me.hysong/apprunutils\", \"/opt/aqua/lib/python/\", \"/opt/aqua/lib/python/aqua\"]}",
+            "type": "str"
+        },
+        "libs": {
+            "display": "AppRun loadable Libraries",
+            "value": "com.aqua.core:me.hysong.common:me.hysong.apprunutils",
+            "type": "str"
+        },
+        "requirements": {
+            "display": "Application Requirements (Use ',' to separate multiple)",
+            "value": "",
+            "type": "multiline"
+        },
+        "args": {
+            "display": "Service Arguments",
+            "value": "",
+            "type": "str"
+        },
+        "InstallPath": {
+            "display": "Service Install Path",
+            "value": "/opt/aqua/services",
+            "type": "str"
+        },
+        "main_content": {
+            "value": "import sys\n\nfrom AppContext import AppContext\n\ncontext: AppContext = AppContext()\n\ndef main(args: list[str]) -> int:\n    print('Hello, AquariusOS Service!')\n    return 0\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n",
+            "type": "str"
+        },
+        "type": {
+            "display": "Service Type",
+            "value": "simple",
+            "type": "str"
+        },
+        "unit_content": {
+            "hidden": true,
+            "value": "[Unit]\nDescription=$id$\nAfter=network.target\n\n[Service]\nType=simple\nExecStart=/usr/local/sbin/apprun.sh \"$InstallPath$/$id$.apprun\" $args$\nRestart=on-failure\n\n[Install]\nWantedBy=multi-user.target\n",
+            "type": "str"
+        }
+    },
+    "Structure": {
+        ".vscode": {
+            "settings.json": "$libs-vscode$"
+        },
+        "$id$.apprun": {
+            "AppRunMeta": {
+                "id": "$id$",
+                "libs": "$libs$"
+            },
+            "main.py": "$main_content$",
+            "requirements.txt": "$requirements$",
+            "$id$.service": "$unit_content$"
+        }
+    }
+}

@@ -1,0 +1,19 @@
+[Unit]
+Description=AquariusOS Virtual File System Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+CapabilityBoundingSet=CAP_SYS_ADMIN
+AmbientCapabilities=CAP_SYS_ADMIN
+WorkingDirectory=/opt/aqua/homes/root
+ExecStart=/usr/local/sbin/apprun.sh /opt/aqua/sys/services/me.hysong.aqua.services.VFSMK.apprun
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

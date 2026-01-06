@@ -1,0 +1,9 @@
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua.services.VFSGC/Latency:dword=60
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua.services.VFSGC/TTL:dword=3600
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua.services.VFSMK/SizeMB:dword=4096
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua.services.DirectoryMaker/SubStructure:list=features,homes,lib,logs,man,registry,share,sys,services
+HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentBuild:str={{{BUILD_DATE}}}
+HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentVersion:str={{{VERSION}}}
+HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentCodename:str={{{CODENAME}}}
+HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentType:str={{{RELEASE_TYPE}}}
+HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentStructureVersion:dword=1

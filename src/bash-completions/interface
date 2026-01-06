@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+_interfaceswitch_completion() {
+    local cur prev ids
+    COMPREPLY=()
+
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # List available users in the system
+    local iface="gui cli"
+
+    if [[ $COMP_CWORD -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "${iface}" -- "$cur") )
+        return 0
+    fi
+
+}
+
+# Bind completion to both valid command names
+complete -F _interfaceswitch interface interface.sh

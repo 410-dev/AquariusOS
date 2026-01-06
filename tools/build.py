@@ -21,6 +21,9 @@ def load_build_config(config_file: str) -> dict:
                 sys.exit(1)
             config["PreprocessorConfig"]["Variables"][key] = result.stdout.strip()
 
+        elif value.startswith("VAL:"):
+            config["PreprocessorConfig"]["Variables"][key] = config[content]
+
         else:
             config["PreprocessorConfig"]["Variables"][key] = value
 
@@ -260,10 +263,45 @@ def build_project(config: dict) -> None:
         else:
             print(f"    Skipping patch: {patch_path}")
 
+    # Compose maintainer's script
+    def compose_maintainer_script(scope: str, distro: str, output: str) -> None:
+        distro = distro.lower()
+        if distro in ["debian", "ubuntu"]:
+            # Scope is any of: preinst, postinst, prerm, postrm
+            # Script is expected to be in src/package-meta/{distro}/{scope}/xx-xxxxx.sh
+            script_path = os.path.join("src", "package-meta", distro, scope)
+            if not os.path.isdir(script_path):
+                print(f"    No maintainer script directory found for {distro} {scope}, skipping...")
+                return
+            scripts = [scriptf for scriptf in os.listdir(script_path) if scriptf.endswith(".sh")]
+            if not scripts:
+                print(f"    No maintainer scripts found in {script_path}, skipping...")
+                return
+            combined_script_path = os.path.join(output, "DEBIAN", scope)
+            print(f"    Composing maintainer script for {distro} {scope} at {combined_script_path}")
+            with open(combined_script_path, 'w') as outfile:
+                for script in scripts:
+                    script_file_path = os.path.join(script_path, script)
+                    print(f"    Adding maintainer script: {script_file_path}")
+                    with open(script_file_path, 'r') as infile:
+                        outfile.write(f"\n# Begin of script {script}\n")
+                        outfile.write(infile.read())
+                        outfile.write(f"\n# End of script {script}\n")
+                        outfile.write("\n\n")
+            os.chmod(combined_script_path, 0o755)
+        else:
+            print(f"    No maintainer script support for distro {distro}, skipping...")
+    print("[6/n] Composing maintainer scripts...")
+
+    compose_maintainer_script("preinst", config['TargetDistro'], cswd)
+    compose_maintainer_script("postinst", config['TargetDistro'], cswd)
+    compose_maintainer_script("prerm", config['TargetDistro'], cswd)
+    compose_maintainer_script("postrm", config['TargetDistro'], cswd)
+
     # Packaging
     pswd = cswd
     cswd = config['Temporary'] + "/step_2"
-    print("[6/n] Packaging the build output...")
+    print("[7/n] Packaging the build output...")
     packaging_cmdlines: list[list[str]] = config.get("Packaging", {}).get("CommandLines", [])
     for cmdline in packaging_cmdlines:
         print(f"    Running packaging command: {' '.join(cmdline)}")

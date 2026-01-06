@@ -1,0 +1,14 @@
+[Unit]
+Description=AquariusOS PID Files Purger On Boot
+DefaultDependencies=no
+After=local-fs.target
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/aqua/homes/root
+ExecStart=/bin/sh -c '[ -d /opt/aqua/homes/root/systemd/pid ] && rm -rf /opt/aqua/homes/root/systemd/pid/* || mkdir -p /opt/aqua/homes/root/systemd/pid'
+
+[Install]
+WantedBy=multi-user.target

@@ -2,6 +2,7 @@
     "StructType": "BuildStructure",
     "StructVersion": 1,
     "Name": "AquariusOS Default Build Structure",
+    "DisplayName": "AquariusOS",
     "Version": "1.0.0",
     "Source": "src",
     "Temporary": "tmp",
@@ -9,7 +10,13 @@
     "TargetDistro": "Ubuntu",
     "PreprocessorConfig": {
         "Variables": {
-            "BUILD_DATE": "RUN:date +%y%m%d"
+            "PrettyName": "AquariusOS",
+            "NAME": "VAL:DisplayName",
+            "BUILD_DATE": "RUN:date +%y%m%d",
+            "VERSION": "VAL:Version",
+            "UPSTREAM": "VAL:TargetDistro",
+            "CODENAME": "Genesis",
+            "RELEASE_TYPE": "Experimental"
         },
         "PathReplacements": {
             "aisp-": "aqua-",
@@ -33,15 +40,25 @@
         "rocky": false
     },
     "Mapping": {
+        "rootfs": "/",
+        "branding": "/",
         "package-meta/ubuntu": "/DEBIAN",
         "applications/system": "/opt/aqua/sys/applications",
         "applications/user": "/opt/aqua/applications",
         "core": "/opt/aqua/sys",
         "features": "/opt/aqua/features",
-        "libraries/system": "/opt/aqua/sys/libs",
-        "libraries/user": "/opt/aqua/libs",
+        "libraries/system": "/opt/aqua/sys/lib",
+        "libraries/user": "/opt/aqua/lib",
         "services/system": "/opt/aqua/sys/services",
-        "services/user": "/opt/aqua/services"
+        "services/user": "/opt/aqua/services",
+        "resources": "/opt/aqua/share",
+        "commands/system": "/opt/aqua/sys/sbin",
+        "commands/user": "/opt/aqua/sbin",
+        "gnome-context-menu-extensions": "/usr/share/nautilus-python/extensions",
+        "preboot": "/opt/aqua/boot/preboot",
+        "bash-completions": "/etc/bash_completion.d",
+        "apprun-dictionaries": "/usr/share/dictionaries/apprun-python",
+        "frameworks": "/opt/aqua/sys/frameworks"
     },
     "Packaging": {
         "CommandLines": [

@@ -1,0 +1,55 @@
+{
+    "TemplateName": "Indicator Library Template",
+    "TemplateVersion": 1,
+    "InputRequirements": {
+        "Indicator": {
+            "display": "Indicator Name",
+            "value": "my-indicator",
+            "type": "str"
+        },
+        "libs-vscode": {
+            "display": "VSCode development settings",
+            "value": "{\"python.analysis.extraPaths\": [\"/usr/share/lib/python/me.hysong/apprunutils\", \"/opt/aqua/lib/python/\", \"/opt/aqua/lib/python/aqua\"]}",
+            "type": "str"
+        },
+        "requirements": {
+            "display": "Application Requirements (Use ',' to separate multiple)",
+            "value": "",
+            "type": "multiline"
+        },
+        "imports": {
+            "display": "Additional Imports",
+            "value": [],
+            "type": "selections",
+            "selections": {
+                "dynamic": true,
+                "allow_multiple": true,
+                "source": {
+                    "plugin": "LibraryEnumerator",
+                    "parameters": {}
+                }
+            }
+        },
+        "imports-processed": {
+            "value": "@PluginCall",
+            "plugin": {
+                "name": "LibraryToImportStatement",
+                "parameters": {
+                    "imports": "$imports$"
+                }
+            },
+            "type": "str"
+        },
+        "main_content": {
+            "value": "from __future__ import annotations\n\n# Import Series\nfrom pandas import Series\n\n# Indicators import\n$imports-processed$\n\n# Function goes here\ndef my_indicator(arg: Series[float]) -> Series[float]:\n    return Series()\n",
+            "type": "str"
+        }
+    },
+    "Structure": {
+        ".vscode": {
+            "settings.json": "$libs-vscode$"
+        },
+        "$Indicator$.py": "$main_content$",
+        "requirements.txt": "$requirements$"
+    }
+}
