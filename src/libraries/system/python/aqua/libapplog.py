@@ -5,13 +5,7 @@ import time
 
 import logging
 
-# # Debian!
-# # TODO: apprun 환경에서는 systemd 가 인식되지 않음, 수정 필요!
-# from systemd import journal
-
 ctx = AppContext()
-# log = logging.getLogger(ctx.bundle_id)
-# log.addHandler(journal.JournaldLogHandler())
 
 def __time__():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
