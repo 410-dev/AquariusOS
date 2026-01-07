@@ -13,8 +13,7 @@ CONFIG = {
     "BaseDirectory": "/home",
     "ApplicationsDirectory": "applications",
     "ProbingIntervalSeconds": 3,
-    "GlobalApplicationProbeTargets": ["/applications", "/opt/applications", "/opt/aisp/sys/applications",
-                                      "/opt/aisp/applications"],
+    "GlobalApplicationProbeTargets": ["/applications", "/opt/applications"],
     "RegistryDir": "/var/lib/apprun",
     "RegistryFile": "desktop-links.json",
     # Debounce time for inotify events (seconds)
