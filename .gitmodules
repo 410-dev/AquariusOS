@@ -1,0 +1,3 @@
+[submodule "src/frameworks/AppRun"]
+	path = src/frameworks/AppRun
+	url = https://github.com/410-dev/AppRun
