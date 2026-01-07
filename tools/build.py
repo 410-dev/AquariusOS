@@ -38,6 +38,13 @@ def load_build_config(config_file: str) -> dict:
             config["Packaging"]["Variables"][key] = result.stdout.strip()
 
         elif value.startswith("VAL:"):
+            if content not in config:
+                # Try from PreprocessorConfig variables
+                if content in config.get('PreprocessorConfig', {}).get("Variables", {}):
+                    config["Packaging"]["Variables"][key] = config['PreprocessorConfig']["Variables"][content]
+                    continue
+                print(f"Error: variable {content} not found for packaging variable {key}")
+                sys.exit(1)
             config["Packaging"]["Variables"][key] = config[content]
 
         else:
@@ -224,7 +231,7 @@ def build_project(config: dict) -> None:
                 sys.exit(1)
 
             # Check if build map is defined
-            build_map: dict[str, str] = submodule_build_config.get('BuildMap', {}).get(config['TargetDistro'], None)
+            build_map: dict[str, str] = submodule_build_config.get('AsSubmoduleBuildMap', {}).get(config['TargetDistro'].lower(), None)
 
             # If build map is defined, move files accordingly
             if build_map is not None:
@@ -232,7 +239,7 @@ def build_project(config: dict) -> None:
                 # Map contains "source": "destination (with its new final name)"
                 for src, dest in build_map.items():
                     lsrc = os.path.join(built_output_path, src)
-                    ldest = os.path.join(built_output_path, dest)
+                    ldest = os.path.join(cswd, dest)
                     print(f"        Moving {lsrc} to {ldest} ({dest})")
 
                     if not os.path.exists(os.path.dirname(ldest)):
@@ -247,13 +254,12 @@ def build_project(config: dict) -> None:
                     shutil.rmtree(built_output_path)
                 if os.path.exists(os.path.join(submodule_path)):
                     shutil.rmtree(os.path.join(submodule_path))
-                print("    Renaming built output back to submodule directory")
-                os.rename(built_output_path, submodule_path)
 
             else:
                 # Copy built output to submodule directory with .out extension
-                dest_path = os.path.join(submodule_path, os.path.basename(built_output_path) + '.out')
-                print(f"    Moving built output to: {dest_path}")
+                containing_parent_path = os.path.dirname(submodule_path)
+                dest_path = os.path.join(containing_parent_path, os.path.basename(built_output_path) + '.out')
+                print(f"    Moving built output to parent directory: {dest_path}")
                 os.rename(built_output_path, dest_path)
                 print(f"    Removing submodule except for built output: {built_output_path}")
                 if os.path.isdir(built_output_path):
