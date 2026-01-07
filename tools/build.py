@@ -27,6 +27,33 @@ def load_build_config(config_file: str) -> dict:
         else:
             config["PreprocessorConfig"]["Variables"][key] = value
 
+    uo2: dict[str, str] = config.get('Packaging', {}).get("Variables", {})
+    for key, value in uo2.items():
+        content = value[4:]
+        if value.startswith("RUN:"):
+            result = subprocess.run(content, shell=True, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"Error running command for variable {key}: {result.stderr}")
+                sys.exit(1)
+            config["Packaging"]["Variables"][key] = result.stdout.strip()
+
+        elif value.startswith("VAL:"):
+            config["Packaging"]["Variables"][key] = config[content]
+
+        else:
+            config["Packaging"]["Variables"][key] = value
+
+    # For build script command lines, replace {{{VAR}}} with actual values
+    packaging_cmdlines: list[list[str]] = config.get("Packaging", {}).get("CommandLines", [])
+    for i in range(len(packaging_cmdlines)):
+        for j in range(len(packaging_cmdlines[i])):
+            cmdline = packaging_cmdlines[i][j]
+            new_cmdline = cmdline
+            for key, value in config.get('Packaging', {}).get("Variables", {}).items():
+                new_cmdline = new_cmdline.replace("{{{" + key + "}}}", value)
+            packaging_cmdlines[i][j] = new_cmdline
+    config["Packaging"]["CommandLines"] = packaging_cmdlines
+
     return config
 
 
@@ -81,6 +108,7 @@ def build_project(config: dict) -> None:
 
     # Run build steps
     # Create output directory if it doesn't exist
+    print("Preparing build...")
     print("Creating output directory...")
     if os.path.isdir(config['Output']):
         print("    Cleaning existing output directory...")
@@ -90,8 +118,6 @@ def build_project(config: dict) -> None:
         shutil.rmtree(config['Temporary'])
     os.makedirs(config['Output'], exist_ok=True)
     os.makedirs(config['Temporary'], exist_ok=True)
-    for i in range(0, 3):
-        os.makedirs(config['Output'] + f"/step_{i}", exist_ok=True)
     cswd: str = config['Temporary'] + "/step_0" # Current step working directory
 
     # Copy source files to temporary directory
@@ -102,7 +128,7 @@ def build_project(config: dict) -> None:
     print("Running preprocessor...")
 
     # Delete blacklisted files
-    print("[1/n] [1/4] Removing blacklisted files...")
+    print("\n[1/7] [1/4] Removing blacklisted files...")
     blacklist = config.get('PreprocessorConfig', {}).get("BlacklistedFiles", [])
     for root, dirs, files in os.walk(cswd):
         for file in files:
@@ -112,11 +138,14 @@ def build_project(config: dict) -> None:
                 os.remove(file_path)
 
     # For each file in cswd, replace variables
-    print("[1/n] [2/4] Applying preprocessor variables...")
+    print("\n[1/7] [2/4] Applying preprocessor variables...")
     # load files to memory
     files: dict[str, str] = {}
+    omitting_extensions: list[str] = ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "ico", "svg", "mp4", "mp3", "wav", "flac", "ogg", "zip", "tar", "gz", "bz2", "7z", "xz", "pdf", "docx", "xlsx", "pptx"]
     for root, dirs, fs in os.walk(cswd):
         for file in fs:
+            if any(file.lower().endswith("." + ext) for ext in omitting_extensions):
+                continue
             file_path = os.path.join(root, file)
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 files[file_path] = f.read()
@@ -124,11 +153,10 @@ def build_project(config: dict) -> None:
     for key, value in config.get('PreprocessorConfig', {}).get("Variables", {}).items():
         print("    Replacing {{{" + key + "}}} with " + value)
         for file_path, content in files.items():
-            print(f"        Processing file: {file_path}")
             new_content = content
             new_content = new_content.replace("{{{" + key + "}}}", value)
             if new_content != content:
-                print(f"            Updating contents of {file_path}")
+                print(f"        {file_path}")
                 files[file_path] = new_content
 
     # Write back modified files
@@ -140,11 +168,11 @@ def build_project(config: dict) -> None:
     files.clear()
 
     # Perform path replacements
-    print("[1/n] [3/4] Performing path replacements...")
+    print("\n[1/7] [3/4] Performing path replacements...")
     relocate(cswd, config.get('PreprocessorConfig', {}).get("PathReplacements", {}))
 
     # Set executable
-    print("[1/n] [4/4] Setting executables...")
+    print("\n[1/7] [4/4] Setting executables...")
     for root, dirs, files in os.walk(cswd):
         for file in files:
             # If file name starts with *, then ends with xxx, set as executable
@@ -173,7 +201,7 @@ def build_project(config: dict) -> None:
                     os.chmod(file_path, 0o755)
 
     # Perform submodule builds
-    print("[2/n] Building submodules...")
+    print("\n[2/7] Building submodules...")
     # Walk through all directories, see if it contains build.sh and build.json files
     for root, dirs, files in os.walk(cswd):
         if 'build.sh' in files and 'build.json' in files:
@@ -208,7 +236,7 @@ def build_project(config: dict) -> None:
             os.rename(dest_path, submodule_path)
 
     # If _overlay directory exists, copy its contents to step 1 dir
-    print(f"[3/n] Applying overlay if exists...")
+    print(f"\n[3/7] Applying overlay if exists...")
     os.makedirs(config['Temporary'] + "/step_1", exist_ok=True)
     for root, dirs, files in os.walk(cswd):
         if '_overlay' in dirs:
@@ -227,7 +255,7 @@ def build_project(config: dict) -> None:
     # Move files by mapping to output directory
     pswd = cswd
     cswd = config['Temporary'] + "/step_1"
-    print("[4/n] Moving files to assigned output directory...")
+    print("\n[4/7] Moving files to assigned output directory...")
     mapping: dict[str, str] = config.get("Mapping", {})
     for src, dest in mapping.items():
         ldest = cswd + "/" + dest
@@ -245,7 +273,7 @@ def build_project(config: dict) -> None:
 
     # Patching
     # Check if any patch files exist in config['Patches']
-    print("[5/n] Applying patches...")
+    print("\n[5/7] Applying patches...")
     patches: dict[str, bool] = config.get("Patches", {})
     for patch_file, enabled in patches.items():
         patch_path = os.path.join('patches', patch_file)
@@ -268,8 +296,8 @@ def build_project(config: dict) -> None:
         distro = distro.lower()
         if distro in ["debian", "ubuntu"]:
             # Scope is any of: preinst, postinst, prerm, postrm
-            # Script is expected to be in src/package-meta/{distro}/{scope}/xx-xxxxx.sh
-            script_path = os.path.join("src", "package-meta", distro, scope)
+            # Script is expected to be in src/package-meta/{distro}/{scope}.d/xx-xxxxx.sh
+            script_path = os.path.join(pswd, "package-meta", distro, scope + ".d")
             if not os.path.isdir(script_path):
                 print(f"    No maintainer script directory found for {distro} {scope}, skipping...")
                 return
@@ -280,18 +308,30 @@ def build_project(config: dict) -> None:
             combined_script_path = os.path.join(output, "DEBIAN", scope)
             print(f"    Composing maintainer script for {distro} {scope} at {combined_script_path}")
             with open(combined_script_path, 'w') as outfile:
+                outfile.write("#!/bin/bash\n\n")
                 for script in scripts:
                     script_file_path = os.path.join(script_path, script)
                     print(f"    Adding maintainer script: {script_file_path}")
                     with open(script_file_path, 'r') as infile:
                         outfile.write(f"\n# Begin of script {script}\n")
-                        outfile.write(infile.read())
+                        script_content = infile.read()
+                        # Remove shebang if exists
+                        if script_content.startswith("#!"):
+                            script_lines = script_content.splitlines()
+                            for line in script_lines:
+                                if line.startswith("#!"):
+                                    continue
+                                outfile.write(line + "\n")
+                        else:
+                            outfile.write(script_content)
                         outfile.write(f"\n# End of script {script}\n")
                         outfile.write("\n\n")
             os.chmod(combined_script_path, 0o755)
+            # Remove directory after composing
+            shutil.rmtree(combined_script_path + ".d", ignore_errors=True)
         else:
             print(f"    No maintainer script support for distro {distro}, skipping...")
-    print("[6/n] Composing maintainer scripts...")
+    print("\n[6/7] Composing maintainer scripts...")
 
     compose_maintainer_script("preinst", config['TargetDistro'], cswd)
     compose_maintainer_script("postinst", config['TargetDistro'], cswd)
@@ -301,11 +341,11 @@ def build_project(config: dict) -> None:
     # Packaging
     pswd = cswd
     cswd = config['Temporary'] + "/step_2"
-    print("[7/n] Packaging the build output...")
+    print("\n[7/7] Packaging the build output...")
     packaging_cmdlines: list[list[str]] = config.get("Packaging", {}).get("CommandLines", [])
     for cmdline in packaging_cmdlines:
         print(f"    Running packaging command: {' '.join(cmdline)}")
-        result = subprocess.run(cmdline, cwd=pswd)
+        result = subprocess.run(cmdline, cwd=os.getcwd())
         if result.returncode != 0:
             print(f"Error running packaging command: {' '.join(cmdline)}")
             sys.exit(1)
