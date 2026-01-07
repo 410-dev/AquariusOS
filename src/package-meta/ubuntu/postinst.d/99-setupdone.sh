@@ -1,0 +1,1 @@
+mark "AquariusOSSetupDone.Global.var" "$current_version"
