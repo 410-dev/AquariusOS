@@ -11,11 +11,11 @@
     "PreprocessorConfig": {
         "Variables": {
             "PrettyName": "AquariusOS",
+            "CODENAME": "Genesis",
             "NAME": "VAL:DisplayName",
             "BUILD_DATE": "RUN:date +%y%m%d",
             "VERSION": "VAL:Version",
             "UPSTREAM": "VAL:TargetDistro",
-            "CODENAME": "Genesis",
             "RELEASE_TYPE": "Experimental"
         },
         "PathReplacements": {
@@ -61,10 +61,24 @@
         "frameworks": "/opt/aqua/sys/frameworks"
     },
     "Packaging": {
+        "Variables": {
+            "Source": "VAL:Source",
+            "Temporary": "VAL:Temporary",
+            "Output": "VAL:Output",
+            "Name": "VAL:DisplayName",
+            "Version": "VAL:VERSION",
+            "Codename": "VAL:CODENAME",
+            "ReleaseType": "VAL:RELEASE_TYPE",
+            "Runner": "RUN:whoami"
+        },
         "CommandLines": [
-            ["sudo", "chown", "-R", "root:root", "$1"],
-            ["sudo", "chmod", "-R", "755", "$1"],
-            ["sudo", "dpkg-deb", "--build", "$1"]
+            ["sudo", "chown", "-R", "root:root", "{{{Temporary}}}/step_1"],
+            ["sudo", "chmod", "-R", "755", "{{{Temporary}}}/step_1"],
+            ["sudo", "dpkg-deb", "--build", "{{{Temporary}}}/step_1"],
+            ["sudo", "chown", "{{{Runner}}}:{{{Runner}}}", "{{{Temporary}}}/step_1.deb"],
+            ["sudo", "chmod", "644", "{{{Temporary}}}/step_1.deb"],
+            ["sudo", "chown", "-R", "{{{Runner}}}:{{{Runner}}}", "{{{Temporary}}}/step_1"],
+            ["mv", "{{{Temporary}}}/step_1.deb", "{{{Output}}}/{{{Name}}}-{{{Version}}}-{{{Codename}}}-{{{ReleaseType}}}.deb"]
         ],
         "OutputPatterns": [
             "*.deb"
