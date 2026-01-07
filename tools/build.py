@@ -305,6 +305,7 @@ def build_project(config: dict) -> None:
             if not scripts:
                 print(f"    No maintainer scripts found in {script_path}, skipping...")
                 return
+            scripts.sort() # Ensure order by filename (1 to N)
             combined_script_path = os.path.join(output, "DEBIAN", scope)
             print(f"    Composing maintainer script for {distro} {scope} at {combined_script_path}")
             with open(combined_script_path, 'w') as outfile:
