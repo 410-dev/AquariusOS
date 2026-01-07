@@ -223,17 +223,45 @@ def build_project(config: dict) -> None:
                 print(f"Built output file {built_output_path} does not exist.")
                 sys.exit(1)
 
-            # Copy built output to submodule directory with .out extension
-            dest_path = os.path.join(submodule_path, os.path.basename(built_output_path) + '.out')
-            print(f"    Moving built output to: {dest_path}")
-            os.rename(built_output_path, dest_path)
-            print(f"    Removing submodule except for built output: {built_output_path}")
-            if os.path.isdir(built_output_path):
-                shutil.rmtree(built_output_path)
-            if os.path.exists(os.path.join(submodule_path)):
-                shutil.rmtree(os.path.join(submodule_path))
-            print("    Renaming .out file back to submodule directory")
-            os.rename(dest_path, submodule_path)
+            # Check if build map is defined
+            build_map: dict[str, str] = submodule_build_config.get('BuildMap', {}).get(config['TargetDistro'], None)
+
+            # If build map is defined, move files accordingly
+            if build_map is not None:
+                print(f"    Applying build map for submodule...")
+                # Map contains "source": "destination (with its new final name)"
+                for src, dest in build_map.items():
+                    lsrc = os.path.join(built_output_path, src)
+                    ldest = os.path.join(built_output_path, dest)
+                    print(f"        Moving {lsrc} to {ldest} ({dest})")
+
+                    if not os.path.exists(os.path.dirname(ldest)):
+                        os.makedirs(os.path.dirname(ldest), exist_ok=True)
+                    if os.path.isdir(lsrc):
+                        shutil.copytree(lsrc, ldest, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(lsrc, ldest)
+
+                print(f"    Removing submodule except for built output: {built_output_path}")
+                if os.path.isdir(built_output_path):
+                    shutil.rmtree(built_output_path)
+                if os.path.exists(os.path.join(submodule_path)):
+                    shutil.rmtree(os.path.join(submodule_path))
+                print("    Renaming built output back to submodule directory")
+                os.rename(built_output_path, submodule_path)
+
+            else:
+                # Copy built output to submodule directory with .out extension
+                dest_path = os.path.join(submodule_path, os.path.basename(built_output_path) + '.out')
+                print(f"    Moving built output to: {dest_path}")
+                os.rename(built_output_path, dest_path)
+                print(f"    Removing submodule except for built output: {built_output_path}")
+                if os.path.isdir(built_output_path):
+                    shutil.rmtree(built_output_path)
+                if os.path.exists(os.path.join(submodule_path)):
+                    shutil.rmtree(os.path.join(submodule_path))
+                print("    Renaming .out file back to submodule directory")
+                os.rename(dest_path, submodule_path)
 
     # If _overlay directory exists, copy its contents to step 1 dir
     print(f"\n[3/7] Applying overlay if exists...")
