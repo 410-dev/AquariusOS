@@ -2,9 +2,9 @@ import base64
 import json
 import random
 
-import libreg as reg
-import libapplog as logger
-import libcryptography as credentials
+from oscore import libreg as reg
+from oscore import libapplog as logger
+from oscore import libcryptography as credentials
 
 def make_clientside_header_v1() -> tuple[str, str]:
     """
