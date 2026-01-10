@@ -1,8 +1,8 @@
 import time
 
-import libapplog as log
-import libvfs as vfs
-import libreg as reg
+from oscore import libapplog as log
+from oscore import libvfs as vfs
+from oscore import libreg as reg
 
 
 def main():

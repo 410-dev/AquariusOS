@@ -1,8 +1,8 @@
 
 import subprocess
 
-import libapplog as log
-import libreg as reg
+from oscore import libapplog as log
+from oscore import libreg as reg
 
 from AppContext import AppContext
 

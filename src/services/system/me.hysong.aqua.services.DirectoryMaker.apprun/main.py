@@ -1,8 +1,8 @@
 import sys
 import os
 
-import libreg as reg
-import libapplog as logger
+from oscore import libreg as reg
+from oscore import libapplog as logger
 
 def main():
     substruct: list[str] = reg.read("HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua.services.DirectoryMaker/SubStructure", "features,homes,lib,logs,man,registry,share,sys,services".split(","))

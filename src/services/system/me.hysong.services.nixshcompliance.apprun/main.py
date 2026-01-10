@@ -1,7 +1,7 @@
 import os
 import stat
 import pyinotify
-import libreg as reg
+from oscore import libreg as reg
 
 # Configuration
 TARGET_BIN_DIR = '/usr/local/sbin'
