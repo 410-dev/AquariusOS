@@ -8,11 +8,5 @@ ln -s /usr/local/sbin/appid.sh /usr/local/bin/appid
 ln -s /usr/local/sbin/apprun-prepare.sh /usr/local/bin/apprun-prepare
 ln -s /usr/local/sbin/dictionary.py /usr/local/bin/dictionary
 
-if [[ -f /tmp/DoNotEnableAppRunDropInService ]]; then
-    rm /tmp/DoNotEnableAppRunDropInService
-    exit 0
-fi
-
-
-/usr/local/sbin/apprun-prepare.sh "/opt/aisp/services/com.acadia.aisp.services.apprundropin.apprun"
-/opt/aisp/sys/sbin/services.sh enable com.acadia.aisp.services.apprundropin
+/usr/local/sbin/apprun-prepare.sh "/opt/aqua/services/me.hysong.aqua.services.apprundropin.apprun"
+/opt/aqya/sys/sbin/services.sh enable me.hysong.aqua.services.apprundropin
