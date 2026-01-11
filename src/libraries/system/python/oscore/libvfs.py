@@ -111,8 +111,9 @@ def _atomic_write_bytes(path: str, data: bytes) -> bool:
                     os.unlink(temp_name)
                 except Exception:
                     pass
-        finally:
-            return False
+        except:
+            pass
+        return False
 
 
 def _read_json_file(path: str) -> Optional[Dict[str, Any]]:
