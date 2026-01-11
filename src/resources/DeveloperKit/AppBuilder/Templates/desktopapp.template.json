@@ -39,7 +39,7 @@
         },
         "libs": {
             "display": "AppRun loadable Libraries",
-            "value": "com.aqua.core:me.hysong.common:me.hysong.apprunutils",
+            "value": "com.aqua:me.hysong.apprunutils",
             "type": "str"
         },
         "requirements": {

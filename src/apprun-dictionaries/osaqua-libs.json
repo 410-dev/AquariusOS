@@ -1,4 +1,3 @@
 {
-    "com.aqua.core": "/opt/aqua/sys/lib/python/aqua",
-    "me.hysong.common": "/opt/aqua/lib/python"
+    "com.aqua": "/opt/aqua/lib/python"
 }

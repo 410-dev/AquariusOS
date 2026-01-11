@@ -3,8 +3,6 @@ from AppContext import AppContext
 import os
 import time
 
-import logging
-
 ctx = AppContext()
 
 def __time__():
