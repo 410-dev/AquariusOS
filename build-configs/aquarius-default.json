@@ -40,6 +40,9 @@
     "Patches": {
         "rocky": false
     },
+    "MaintainerScriptBlacklist": [
+
+    ],
     "Mapping": {
         "rootfs": "/",
         "branding": "/",

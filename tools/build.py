@@ -335,7 +335,7 @@ def build_project(config: dict) -> None:
             if not os.path.isdir(script_path):
                 print(f"    No maintainer script directory found for {distro} {scope}, skipping...")
                 return
-            scripts = [scriptf for scriptf in os.listdir(script_path) if scriptf.endswith(".sh")]
+            scripts = [scriptf for scriptf in os.listdir(script_path) if scriptf.endswith(".sh") and scriptf not in config.get("MaintainerScriptBlacklist", [])]
             if not scripts:
                 print(f"    No maintainer scripts found in {script_path}, skipping...")
                 return
