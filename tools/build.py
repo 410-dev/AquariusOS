@@ -285,7 +285,8 @@ def build_project(config: dict) -> None:
                     shutil.rmtree(built_output_path)
                 if os.path.exists(os.path.join(submodule_path)):
                     shutil.rmtree(os.path.join(submodule_path))
-                print("    Renaming .out file back to submodule directory")
+                submodule_path = submodule_path if submodule_build_config.get("AsOutput", None) is None else os.path.join(os.path.dirname(submodule_path), submodule_build_config["AsOutput"])
+                print("    Renaming .out file back to submodule directory: " + submodule_path)
                 os.rename(dest_path, submodule_path)
 
     # If _overlay directory exists, copy its contents to step 1 dir

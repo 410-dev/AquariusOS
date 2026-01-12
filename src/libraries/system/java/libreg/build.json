@@ -1,8 +1,4 @@
 {
     "Output": "libreg.jar",
-    "AsSubmoduleBuildMap": {
-        "ubuntu": {
-            "libreg.jar": "libraries/system/java/libreg.jar"
-        }
-    }
+    "AsOutput": "libreg.jar"
 }
