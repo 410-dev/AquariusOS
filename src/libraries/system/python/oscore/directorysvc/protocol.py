@@ -6,14 +6,37 @@ from oscore import libreg as reg
 from oscore import libapplog as logger
 from oscore import libcryptography as credentials
 
+def client_get_dc_pk() -> str:
+    return reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/DomainController/PublicKey", "")
+
+def client_get_dc_identifier() -> str:
+    return reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/DomainController/Identifier", "")
+
+def client_get_current_machine_id() -> str:
+    return reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/CurrentMachine/ComputerName", "")
+
+def client_get_dc_address() -> dict[str, str]:
+    return {
+        "ipv4": reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/DomainController/AddressIPv4", ""),
+        "url": reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/DomainController/AddressURL", ""),
+        "port": reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/DomainController/Port", ""),
+        "use_ssl": reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/DomainController/UseSSL", True),
+    }
+
+def client_get_pk() -> str:
+    return reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/CurrentMachine/PublicKey", "")
+
+def client_get_sk() -> str:
+    return reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/CurrentMachine/PrivateKey", "")
+
 def make_clientside_header_v1() -> tuple[str, str]:
     """
     :return: 세션 키, 헤더 문자열
     """
     # 필요값 가져오기
-    dc_pk: str = reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/Directory/DomainControllerPublicKey", "")
-    dc_identifier: str = reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/Directory/DomainControllerIdentifier", "")
-    registered_id: str = reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/VisibleID", "")
+    dc_pk: str = client_get_dc_pk()
+    dc_identifier: str = client_get_dc_identifier()
+    registered_id: str = client_get_current_machine_id()
 
     # 값 유효성 체크
     if not dc_pk:
@@ -64,12 +87,15 @@ def parse_response_v1(response: str, decryption_key: str) -> dict[str, str]:
         decrypted_bytes = base64.b64decode(decrypted_b64)
         body_str = decrypted_bytes.decode("utf-8")
         body_dict: dict = json.loads(body_str)
-        
-        body_dict["header"] = {
-            "version": lines[0],
-            "server-identifier": lines[1],
-            "client-identifier": lines[2],
-            "session-relay": lines[3],
+
+        data: dict = {
+            "header": {
+                "version": lines[0],
+                "server-identifier": lines[1],
+                "client-identifier": lines[2],
+                "session-relay": lines[3],
+            },
+            "body": body_dict
         }
 
     except Exception as e:
@@ -77,7 +103,7 @@ def parse_response_v1(response: str, decryption_key: str) -> dict[str, str]:
         return {}
 
     # 결과 반환
-    return body_dict
+    return data
 
 def make_body_v1(body: dict, encryption_key: str) -> str:
     body_str: str = json.dumps(body)
