@@ -64,7 +64,7 @@ def load_build_config(config_file: str) -> dict:
     return config
 
 
-def relocate(target_dir: str, mapping: dict[str, str]) -> None:
+def relocate(target_dir: str, mapping: dict[str, str], skip_binary_files: bool) -> None:
     # Rename files and directories in target_dir
     # for item in os.listdir(target_dir):
     #     item_path = os.path.join(target_dir, item)
@@ -94,6 +94,9 @@ def relocate(target_dir: str, mapping: dict[str, str]) -> None:
     for root, dirs, files in os.walk(target_dir):
         for file in files:
             file_path = os.path.join(root, file)
+            if is_binary_file(file_path) and skip_binary_files:
+                print(f"    Skipping binary file content update: {file_path}")
+                continue
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
             new_content = content
@@ -192,7 +195,7 @@ def build_project(config: dict) -> None:
 
     # Perform path replacements
     print("\n[1/7] [3/4] Performing path replacements...")
-    relocate(cswd, config.get('PreprocessorConfig', {}).get("PathReplacements", {}))
+    relocate(cswd, config.get('PreprocessorConfig', {}).get("PathReplacements", {}), config.get("PreprocessorConfig", {}).get("SkipBinaryFiles", True))
 
     # Set executable
     print("\n[1/7] [4/4] Setting executables...")
