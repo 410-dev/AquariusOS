@@ -1,0 +1,8 @@
+{
+  "Output": "server.jar",
+  "AsSubmoduleBuildMap": {
+    "ubuntu": {
+      "server.jar": "features/me.hysong.domaincontroller/server.jar"
+    }
+  }
+}
