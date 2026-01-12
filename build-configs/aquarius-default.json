@@ -64,7 +64,8 @@
         "preboot": "/opt/aqua/boot/preboot",
         "bash-completions": "/etc/bash_completion.d",
         "apprun-dictionaries": "/usr/share/dictionaries/apprun-python",
-        "frameworks": "/opt/aqua/sys/frameworks"
+        "frameworks": "/opt/aqua/sys/frameworks",
+        "aqua-root": "/opt/aqua"
     },
     "Packaging": {
         "Variables": {
