@@ -35,7 +35,9 @@
             "postinst",
             "prerm",
             "postrm"
-        ]
+        ],
+        "SkipBinaryFiles": true,
+        "SkippingExtensions": ["jar", "class", "dll", "exe", "png", "jpg", "jpeg", "gif", "bmp", "tiff", "ico", "svg", "mp4", "mp3", "wav", "flac", "ogg", "zip", "tar", "gz", "bz2", "7z", "xz", "pdf", "docx", "xlsx", "pptx"]
     },
     "Patches": {
         "rocky": false

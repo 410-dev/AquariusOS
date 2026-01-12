@@ -105,6 +105,18 @@ def relocate(target_dir: str, mapping: dict[str, str]) -> None:
                     f.write(new_content)
 
 
+def is_binary_file(filepath: str) -> bool:
+    """Check if file is binary by looking for null bytes in the first chunk."""
+    try:
+        with open(filepath, 'rb') as f:
+            chunk = f.read(8192)
+            if b'\x00' in chunk:
+                return True
+    except Exception:
+        return True
+    return False
+
+
 def build_project(config: dict) -> None:
     """Build the project based on the provided configuration."""
     print(f"Building project: {config['Name']}")
@@ -148,9 +160,13 @@ def build_project(config: dict) -> None:
     print("\n[1/7] [2/4] Applying preprocessor variables...")
     # load files to memory
     files: dict[str, str] = {}
-    omitting_extensions: list[str] = ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "ico", "svg", "mp4", "mp3", "wav", "flac", "ogg", "zip", "tar", "gz", "bz2", "7z", "xz", "pdf", "docx", "xlsx", "pptx"]
+    omitting_extensions: list[str] = config.get('PreprocessorConfig', {}).get("SkippingExtensions", [])
     for root, dirs, fs in os.walk(cswd):
         for file in fs:
+            file_path = os.path.join(root, file)
+            if is_binary_file(file_path) and config.get("PreprocessorConfig", {}).get("SkipBinaryFiles", True):
+                print(f"    Skipping binary file: {file_path}")
+                continue
             if any(file.lower().endswith("." + ext) for ext in omitting_extensions):
                 continue
             file_path = os.path.join(root, file)
