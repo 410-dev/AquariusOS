@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ -L /opt/aquariusos/homes/root/dotlocal ] || [ -e /opt/aquariusos/homes/root/dotlocal ]; then
+if [ -L /opt/aqua/homes/root/dotlocal ] || [ -e /opt/aqua/homes/root/dotlocal ]; then
     echo "Link or file already exists. Skipping..."
 else
-    ln -s /root/.local /opt/aquariusos/homes/root/dotlocal
+    ln -s /root/.local /opt/aqua/homes/root/dotlocal
 fi
