@@ -20,4 +20,6 @@ fi
 # /usr/share/icons/Yaru/scalable/places/start-here-symbolic.svg
 
 DIVERT_PATH="/usr/share/icons/Yaru/scalable/places/start-here-symbolic.svg"
-dpkg-divert --package="osaqua-core" --add --rename --divert "$DIVERT_PATH".diverted "$DIVERT_PATH"
+dpkg-divert --package="$DPKG_MAINTSCRIPT_PACKAGE" --add --rename --divert "$DIVERT_PATH".diverted "$DIVERT_PATH"
+DIVERT_PATH="/etc/os-release"
+dpkg-divert --package="$DPKG_MAINTSCRIPT_PACKAGE" --add --rename --divert "$DIVERT_PATH".diverted "$DIVERT_PATH"
