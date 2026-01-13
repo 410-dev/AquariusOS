@@ -15,4 +15,3 @@ if ! mountpoint -q /boot; then
 fi
 
 echo "System compatibility check passed."
-exit 0
