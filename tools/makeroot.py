@@ -364,7 +364,7 @@ def create_configured_symlinks(
                 os.remove(full_link_path)
 
         # 4. Create the symlink
-        # os.symlink(target, link_name) -> ln -s target link_name
+        # os.symlink(target, link_name) -> ln -sf target link_name
         # NO, DO NOT USE OS.SYMLINK HERE. Use /usr/lib/tmpfiles.d/xxxx.conf instead.
         # This will do the trick on Silverblue systems during boot.
         try:

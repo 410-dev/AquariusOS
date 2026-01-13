@@ -90,7 +90,7 @@ case "$1" in
         fi
 
         mkdir -p "$(dirname "$COPY_TO")"
-        ln -s "$INSTALLMENT_SCRIPT" "$COPY_TO"
+        ln -sf "$INSTALLMENT_SCRIPT" "$COPY_TO"
         ;;
 
     SetInstallmentScriptFailRollbackScript)
@@ -118,7 +118,7 @@ case "$1" in
             exit 1
         fi
         mkdir -p "$(dirname "$COPY_TO")"
-        ln -s "$ROLLBACK_SCRIPT" "$COPY_TO"
+        ln -sf "$ROLLBACK_SCRIPT" "$COPY_TO"
 
         ;;
 
