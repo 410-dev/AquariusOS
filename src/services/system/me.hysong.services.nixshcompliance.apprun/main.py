@@ -46,6 +46,9 @@ def create_symlink(source, filename):
     if destination.endswith(".sh"):
         destination = destination[:-len(".sh")]
 
+    elif destination.endswith(".py"):
+        destination = destination[:-len(".py")]
+
     # If destination exists
     if os.path.lexists(destination):
         # If it's a broken link, remove it so we can re-link it
@@ -130,6 +133,17 @@ def initial_scan(watch_dirs):
                 elif os.path.isdir(full_path) and item.endswith('.apprun'):
                     create_apprun_wrapper(full_path, item)
 
+                # Case 3: .py executable
+                elif not os.path.isdir(full_path) and item.endswith('.py'):
+                    # Check if it starts with shebang
+                    with open(full_path, 'r') as f:
+                        first_line = f.readline()
+                        if first_line.startswith('#!') and 'python' in first_line:
+                            create_symlink(full_path, item)
+                            # Set executable
+                            os.chmod(full_path, os.stat(full_path).st_mode | stat.S_IEXEC)
+
+
         except OSError as e:
             print(f"Error scanning directory {directory}: {e}")
 
@@ -158,6 +172,12 @@ class ChangeHandler(pyinotify.ProcessEvent):
         elif event.dir and filename.endswith('.apprun'):
             create_apprun_wrapper(filepath, filename)
 
+        elif not event.dir and filename.endswith('.py'):
+            with open(filepath, 'r') as f:
+                first_line = f.readline()
+                if first_line.startswith('#!') and 'python' in first_line:
+                    create_symlink(filepath, filename)
+                    os.chmod(filepath, os.stat(filepath).st_mode | stat.S_IEXEC)
 
 def main():
     # 1. Load configuration from Registry
