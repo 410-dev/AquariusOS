@@ -59,7 +59,7 @@ class FastShareExtension(GObject.GObject, Nautilus.MenuProvider):
         files = args[-1]
         item = Nautilus.MenuItem(
             name='FastShare::Share',
-            label='Share',
+            label='Share via WebDAV',
             tip='Share selected items',
             icon=''
         )
@@ -70,7 +70,7 @@ class FastShareExtension(GObject.GObject, Nautilus.MenuProvider):
         folder = args[-1]
         item = Nautilus.MenuItem(
             name='FastShare::ShareBackground',
-            label='Share Current Directory',
+            label='Share Current Directory via WebDAV',
             tip='Share current directory',
             icon=''
         )
