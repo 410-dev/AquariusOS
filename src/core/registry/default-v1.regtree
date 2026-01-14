@@ -7,3 +7,5 @@ HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentVersion:str={{{VERSION}}}
 HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentCodename:str={{{CODENAME}}}
 HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentType:str={{{RELEASE_TYPE}}}
 HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentStructureVersion:dword=1
+
+HKEY_LOCAL_MACHINE_NOINST/SYSTEM/AppRun/DropInServiceConfigs/GlobalApplicationProbeTargets:list=/applications,/opt/applications,/opt/aqua/applications,/opt/aqua/sys/applications
