@@ -14,7 +14,7 @@
         },
         "libs": {
             "display": "AppRun loadable Libraries",
-            "value": "com.aqua:me.hysong.apprunutils",
+            "value": "com.aqua.common:com.aqua.sys:me.hysong.apprunutils",
             "type": "str"
         },
         "requirements": {
