@@ -1,180 +1,151 @@
 #!/bin/bash
 
-# Reference: https://www.reddit.com/r/btrfs/comments/1dq04qx/convert_ubuntu_btrfs_installation_into_subvolumes/
+# ==============================================================================
+# Btrfs Conversion Stage 1: Structure & Boot Prep
+# ==============================================================================
 
 set -e
-#"/opt/aqua/sys/sbin/preboot.sh" SetInstallmentScriptFailRollbackScript "/opt/aqua/features/me.hysong.SnapshotSupport/stages/stage1-rollback.sh"
 
-# Create subvolumes
-STEP 1 8 "Creating btrfs subvolumes..."
-if [[ -d /@ ]] || [[ -d /@home ]]; then
-    STEP 1 8 "Error: Directory /@ or /@home already exist. Unable to create subvolumes."
+# --- Helper Functions ---
+log_step() {
+    # Usage: log_step <current> <total> <message>
+    echo "[Step $1/$2] $3"
+    # Call original logging hook if it exists
+    if type STEP &>/dev/null; then STEP "$1" "$2" "$3"; fi
+}
+
+error_exit() {
+    echo "ERROR: $1"
+    # Call original logging hook if it exists
+    if type STEP &>/dev/null; then STEP "$2" "$3" "Error: $1"; fi
     sleep 3
     exit 1
+}
+
+# --- Detection ---
+IS_SEPARATE_BOOT=false
+if mountpoint -q /boot; then
+    IS_SEPARATE_BOOT=true
+    echo "[-] Detected separate /boot partition."
+else
+    echo "[-] Detected /boot is part of root filesystem."
 fi
+
+# ==============================================================================
+# 1. Create Subvolumes
+# ==============================================================================
+log_step 1 8 "Creating btrfs subvolumes..."
+
+if [[ -d /@ ]] || [[ -d /@home ]]; then
+    error_exit "Directory /@ or /@home already exists. Conversion aborted." 1 8
+fi
+
+# Create snapshots/subvolumes
 btrfs subvolume snapshot / /@
 btrfs subvolume create /@home
 
-# Update fstab and move home data
-STEP 2 8 "Updating fstab and moving /home data..."
+# ==============================================================================
+# 2. Migrate Data
+# ==============================================================================
+log_step 2 8 "Updating fstab and moving /home data..."
+
+# Call existing python helper for fstab (Assuming it handles UUIDs correctly)
 python3 "/opt/aqua/features/me.hysong.SnapshotSupport/fstab_editor.py" "$(findmnt --output=UUID --noheadings --target=/)"
-if [[ $? -ne 0 ]]; then
-    STEP 2 8 "Error: fstab update failed."
-    sleep 3
-    exit 1
-fi
-#mv /@/home/* /@home/   # <-- Make it safe for empty home directories
+if [[ $? -ne 0 ]]; then error_exit "fstab update failed." 2 8; fi
+
+# Move Home Data
+# We use rsync to move data from the snapshot's home to the new @home subvolume
 rsync -aAXv /@/home/ /@home/
-if [[ $? -ne 0 ]]; then
-    STEP 2 8 "Error: Moving /home data failed."
-    sleep 3
-    exit 1
-fi
+if [[ $? -ne 0 ]]; then error_exit "Moving /home data failed." 2 8; fi
 
+# Clean up source home in the new root snapshot to avoid duplicate space usage
+# (Optional, but good practice: leave an empty dir as mount point)
+rm -rf /@/home/*
 
-# Update grub to boot from new subvolumes
-STEP 3 8 "Updating GRUB configuration..."
+# ==============================================================================
+# 3. Update GRUB (Configuration)
+# ==============================================================================
+log_step 3 8 "Updating GRUB configuration..."
+
+# 3a. Call stage1 python editor (likely handles basic grub file edits)
 python3 "/opt/aqua/features/me.hysong.SnapshotSupport/grub_editor_stg1.py"
-if [[ $? -ne 0 ]]; then
-    STEP 3 8 "Error: GRUB update failed."
-    sleep 3
-    exit 1
-fi
-update-grub
-if [[ $? -ne 0 ]]; then
-    STEP 3 8 "Error: GRUB regeneration failed."
-    sleep 3
-    exit 1
-fi
+if [[ $? -ne 0 ]]; then error_exit "GRUB python update failed." 3 8; fi
 
-### FROM GEMINI
-### Updating grub without rebooting
-echo "Backing up current GRUB configuration..."
-STEP 4 8 "Backing up GRUB configuration..."
-if [[ ! -f /etc/default/grub ]]; then
-    echo "Error: /etc/default/grub not found. Cannot back up."
-    STEP 4 8 "Error: Cannot backup GRUB. (1)"
-    sleep 3
-    exit 1
-fi
-if [[ ! -f /boot/grub/grub.cfg ]]; then
-    echo "Error: /boot/grub/grub.cfg not found. Cannot back up."
-    STEP 4 8 "Error: Cannot backup GRUB. (2)"
-    sleep 3
-    exit 1
-fi
+# ==============================================================================
+# 4. Backup GRUB
+# ==============================================================================
+log_step 4 8 "Backing up GRUB configuration..."
+
+[[ -f /etc/default/grub ]] || error_exit "/etc/default/grub not found." 4 8
+[[ -f /boot/grub/grub.cfg ]] || error_exit "/boot/grub/grub.cfg not found." 4 8
+
 cp /etc/default/grub /etc/default/grub.bak
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to back up /etc/default/grub."
-    STEP 4 8 "Error: Failed to backup GRUB. (1)"
-    sleep 3
-    exit 1
-fi
 cp /boot/grub/grub.cfg /boot/grub/grub.cfg.bak
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to back up /boot/grub/grub.cfg."
-    STEP 4 8 "Error: Failed to backup GRUB. (2)"
-    sleep 3
-    exit 1
-fi
 
-# 1. Add rootflags=subvol=@ to /etc/default/grub
-# We look for the GRUB_CMDLINE_LINUX_DEFAULT line.
-# If "rootflags=subvol=@" is not already there, we inject it inside the quotes.
-echo "Modifying /etc/default/grub to include rootflags=subvol=@..."
-STEP 5 8 "Modifying /etc/default/grub..."
+# ==============================================================================
+# 5. Inject Root Flags
+# ==============================================================================
+log_step 5 8 "Modifying /etc/default/grub..."
+
+# We MUST inject rootflags=subvol=@ so the kernel knows to mount @ as root.
 if grep -q "rootflags=subvol=@" /etc/default/grub; then
-    echo "rootflags already present in /etc/default/grub."
+    echo "[-] rootflags already present."
 else
-    echo "Adding rootflags to /etc/default/grub..."
+    echo "[-] Injecting rootflags=subvol=@..."
     sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="rootflags=subvol=@ /' /etc/default/grub
-    if [[ $? -ne 0 ]]; then
-        echo "Error: Failed to modify /etc/default/grub."
-        STEP 5 8 "Error: Failed to modify GRUB configuration."
-        sleep 3
-        exit 1
-    fi
+    if [[ $? -ne 0 ]]; then error_exit "Failed to modify /etc/default/grub." 5 8; fi
 fi
 
-# 2. Regenerate the GRUB config file
-# This applies the flags we just added.
-echo "Regenerating GRUB configuration..."
-STEP 6 8 "Regenerating GRUB configuration..."
+# ==============================================================================
+# 6. Regenerate GRUB Config
+# ==============================================================================
+log_step 6 8 "Regenerating GRUB configuration..."
+
 if command -v update-grub &> /dev/null; then
-    update-grub
-    if [[ $? -ne 0 ]]; then
-        echo "Error: GRUB regeneration failed."
-        STEP 6 8 "Error: GRUB regeneration failed."
-        sleep 3
-        exit 1
-    fi
+    update-grub || error_exit "GRUB regeneration failed." 6 8
 else
-    # Fallback for non-Debian/Ubuntu systems (Arch, Fedora, etc.)
-    echo "WARNING: update-grub command not found. Using grub-mkconfig instead."
-    grub-mkconfig -o /boot/grub/grub.cfg
+    grub-mkconfig -o /boot/grub/grub.cfg || error_exit "GRUB regeneration failed." 6 8
+fi
+
+# ==============================================================================
+# 7. Patch GRUB Paths (Conditional)
+# ==============================================================================
+log_step 7 8 "Patching GRUB paths..."
+
+if [[ "$IS_SEPARATE_BOOT" == "true" ]]; then
+    echo "[-] Separate /boot detected. Skipping path patching."
+    echo "    (Kernel paths in grub.cfg are relative to /boot partition and do not need /@ prefix.)"
+else
+    echo "[-] /boot is on root. Patching paths to include /@/..."
+
+    # We only run this if /boot is NOT separate.
+    # In this case, the kernel files physically moved to /@/boot/,
+    # but GRUB's search root is still the FS root.
+
+    # 1. Linux Kernel Path
+    sed -i 's|linux[[:space:]]*/boot/|linux /@/boot/|g' /boot/grub/grub.cfg
+    sed -i 's|linux[[:space:]]*/vmlinuz|linux /@/vmlinuz|g' /boot/grub/grub.cfg
+
+    # 2. Initrd Path
+    sed -i 's|initrd[[:space:]]*/boot/|initrd /@/boot/|g' /boot/grub/grub.cfg
+    sed -i 's|initrd[[:space:]]*/initrd|initrd /@/initrd|g' /boot/grub/grub.cfg
+
     if [[ $? -ne 0 ]]; then
-        echo "Error: GRUB regeneration failed."
-        STEP 6 8 "Error: GRUB regeneration failed."
-        sleep 3
-        exit 1
+        # Rollback on sed failure
+        cp /boot/grub/grub.cfg.bak /boot/grub/grub.cfg
+        error_exit "Failed to patch GRUB paths." 7 8
     fi
 fi
 
-# 3. Force the /@/boot path adjustment (The 'linux' and 'initrd' lines)
-# Standard GRUB generation might write '/boot/...' instead of '/@/boot/...'
-# We use sed to patch the final grub.cfg file to match your manual instruction requirements.
+# ==============================================================================
+# 8. Finalize
+# ==============================================================================
+log_step 8 8 "Cleaning up and setting next stage..."
 
-echo "Patching paths to include subvolume /@/..."
-STEP 7 8 "Patching GRUB paths..."
+sync
 
-# Replace "linux /boot/" with "linux /@/boot/"
-grub_cfg_orig="$(cat /boot/grub/grub.cfg)"
-sed -i 's|linux[[:space:]]*/boot/|linux /@/boot/|g' /boot/grub/grub.cfg
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to patch GRUB linux paths."
-    STEP 7 8 "Error: Failed to patch GRUB paths."
-    sleep 3
-    # Restore original grub.cfg before exiting
-    echo "$grub_cfg_orig" > /boot/grub/grub.cfg
-    exit 1
-fi
-sed -i 's|linux[[:space:]]*/vmlinuz|linux /@/vmlinuz|g' /boot/grub/grub.cfg
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to patch GRUB linux vmlinuz paths."
-    STEP 7 8 "Error: Failed to patch GRUB paths."
-    sleep 3
-    # Restore original grub.cfg before exiting
-    echo "$grub_cfg_orig" > /boot/grub/grub.cfg
-    exit 1
-fi
-
-# Replace "initrd /boot/" with "initrd /@/boot/"
-sed -i 's|initrd[[:space:]]*/boot/|initrd /@/boot/|g' /boot/grub/grub.cfg
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to patch GRUB initrd paths."
-    STEP 7 8 "Error: Failed to patch GRUB paths."
-    sleep 3
-    # Restore original grub.cfg before exiting
-    echo "$grub_cfg_orig" > /boot/grub/grub.cfg
-    exit 1
-fi
-sed -i 's|initrd[[:space:]]*/initrd|initrd /@/initrd|g' /boot/grub/grub.cfg
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to patch GRUB initrd initrd paths."
-    STEP 7 8 "Error: Failed to patch GRUB paths."
-    sleep 3
-    # Restore original grub.cfg before exiting
-    echo "$grub_cfg_orig" > /boot/grub/grub.cfg
-    exit 1
-fi
-
-### END GEMINI
-
-STEP 8 8 "Cleaning up and finalizing step 1..."
 /opt/aqua/sys/sbin/preboot.sh SetNextInstallmentScript /opt/aqua/features/me.hysong.SnapshotSupport/stages/stage2.sh
-if [[ $? -ne 0 ]]; then
-    STEP 8 8 "Error: Setting next installment script failed."
-    sleep 3
-    exit 1
-fi
+if [[ $? -ne 0 ]]; then error_exit "Setting next installment script failed." 8 8; fi
+
+echo "[+] Stage 1 Complete. Ready for reboot."
 exit 0

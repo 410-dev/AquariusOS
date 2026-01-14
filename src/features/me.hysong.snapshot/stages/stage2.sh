@@ -1,88 +1,142 @@
 #!/bin/bash
 
-# Reference: https://www.reddit.com/r/btrfs/comments/1dq04qx/convert_ubuntu_btrfs_installation_into_subvolumes/
+# ==============================================================================
+# Btrfs Conversion Stage 2: Cleanup & Finalization
+# ==============================================================================
+# This script runs AFTER rebooting into the new /@ subvolume.
+# It cleans up the old "root" files that are left outside the subvolumes.
+# ==============================================================================
 
 set -e
 
-# Verify subvolume boot
-if [[ ! -z "$(mount | grep ' / ' | grep 'subvol=/@')" ]]; then
-    echo "System is already booted from btrfs subvolume /@."
+# --- Configuration ---
+MOUNT_POINT="/tmp/btrfs_cleanup_root"
+IS_EFI=false
+if [[ -d "/sys/firmware/efi" ]]; then IS_EFI=true; fi
+
+# --- Helper Functions ---
+log_step() {
+    echo "[Step $1/$2] $3"
+    if type STEP &>/dev/null; then STEP "$1" "$2" "$3"; fi
+}
+
+error_exit() {
+    echo "ERROR: $1"
+    if type STEP &>/dev/null; then STEP "$2" "$3" "Error: $1"; fi
+    sleep 3
+    exit 1
+}
+
+# Cleanup trap to ensure unmount happens on exit/error
+cleanup() {
+    if mountpoint -q "$MOUNT_POINT"; then
+        echo "[-] Trap: Unmounting cleanup root..."
+        umount "$MOUNT_POINT"
+    fi
+    if [[ -d "$MOUNT_POINT" ]]; then
+        rmdir "$MOUNT_POINT" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
+
+# ==============================================================================
+# 1. Verification
+# ==============================================================================
+# Logic parity: Ensure we are booted into the expected subvolume.
+if findmnt / -n -o OPTIONS | grep -q "subvol=/@"; then
+    echo "[-] Verification passed: Booted from subvolume /@."
 else
-    echo "Error: System is not booted from btrfs subvolume /@. Please check the configuration."
-    exit 1
+    # Fallback check: sometimes options string varies, check source path
+    if findmnt / -n -o SOURCE | grep -q "\[/@\]"; then
+        echo "[-] Verification passed: Booted from subvolume /@ (detected via source)."
+    else
+        error_exit "System is NOT booted from /@. Aborting cleanup to prevent data loss." 0 4
+    fi
 fi
 
-echo "Updating grub configuration..."
-STEP 1 4 "Updating GRUB configuration..."
+# ==============================================================================
+# 2. Update Bootloader
+# ==============================================================================
+log_step 1 4 "Finalizing GRUB configuration..."
+
+# Now that we are booted in /@, update-grub will naturally detect the subvolume
+# and write the correct rootflags=subvol=@ into grub.cfg automatically.
 update-grub
-if [[ $? -ne 0 ]]; then
-    STEP 1 4 "Error: GRUB regeneration failed."
-    sleep 2
-    exit 1
-fi
-grub-install --efi-directory=/boot/efi
-if [[ $? -ne 0 ]]; then
-    STEP 1 4 "Error: GRUB installation failed."
-    sleep 2
-    exit 1
+if [[ $? -ne 0 ]]; then error_exit "GRUB regeneration failed." 1 4; fi
+
+if [[ "$IS_EFI" == "true" ]]; then
+    # Ensure the EFI executable points to the correct config location
+    grub-install --efi-directory=/boot/efi
+    if [[ $? -ne 0 ]]; then error_exit "GRUB EFI installation failed." 1 4; fi
+else
+    echo "[-] Legacy BIOS detected. Skipping EFI installation."
+    # Optional: You might want to run 'grub-install /dev/sdX' here for BIOS,
+    # but detecting the correct drive automatically is risky.
+    # Usually update-grub is sufficient for BIOS if the MBR is already set.
 fi
 
-# Verify subvolumes
-echo "Verifying btrfs subvolumes..."
-STEP 2 4 "Verifying btrfs subvolumes..."
-DEVICE_NAME=$(findmnt --noheadings --output=SOURCE --target=/ | sed 's/\[.*//')
-mkdir -p /tmp/subvolmnt
-mount "$DEVICE_NAME" /tmp/subvolmnt
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to mount btrfs device $DEVICE_NAME."
-    rmdir /tmp/subvolmnt
-    sleep 2
-    exit 1
-fi
-if [[ -z "$(ls -1 /tmp/subvolmnt | grep '@home')" ]]; then
-    echo "Error: Subvolumes /@ and /@home not found. Please check the configuration."
-    umount /tmp/subvolmnt
-    rmdir /tmp/subvolmnt
-    exit 1
+# ==============================================================================
+# 3. Mount Raw Root (subvolid=5)
+# ==============================================================================
+log_step 2 4 "Mounting raw Btrfs root..."
+
+# Logic parity: Identify physical device using findmnt, stripping [subvol] info
+ROOT_DEVICE=$(findmnt / -n -o SOURCE | sed 's/\[.*//')
+
+if [[ -z "$ROOT_DEVICE" ]]; then
+    error_exit "Could not detect root device." 2 4
 fi
 
-echo "Reclaiming space..."
-STEP 3 4 "Reclaiming space by removing old root data..."
-return_to_dir=$(pwd)
-cd /tmp/subvolmnt
+mkdir -p "$MOUNT_POINT"
+
+# Mount subvolid=5 explicitly to see the top-level structure
+mount -o subvolid=5 "$ROOT_DEVICE" "$MOUNT_POINT"
+if [[ $? -ne 0 ]]; then error_exit "Failed to mount raw root ($ROOT_DEVICE)." 2 4; fi
+
+# Verify we see the subvolumes we expect before deleting anything
+if [[ ! -d "$MOUNT_POINT/@" ]] || [[ ! -d "$MOUNT_POINT/@home" ]]; then
+    error_exit "Safety check failed: /@ or /@home missing from top-level. Aborting." 2 4
+fi
+
+# ==============================================================================
+# 4. Reclaim Space
+# ==============================================================================
+log_step 3 4 "Reclaiming space (removing old root data)..."
+
+# Save current dir to return later (though we are running from a script, good practice)
+pushd "$MOUNT_POINT" > /dev/null
+
+# Enable extended globbing to use the negation pattern !()
 shopt -s extglob
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to enable extglob."
-    umount /tmp/subvolmnt
-    rmdir /tmp/subvolmnt
-    exit 1
+
+# Safety: We are about to delete everything that does NOT start with @
+# This assumes your subvolumes are named @, @home, @snapshot, etc.
+# Any standard file (bin, etc, usr, var) in the top level will be deleted.
+echo "[-] Removing files in top-level that do not match '@*'..."
+
+# Explicitly check we are in the mount point before running rm
+if [[ "$(pwd)" == "$MOUNT_POINT" ]]; then
+    rm -rf !(@*)
+    if [[ $? -ne 0 ]]; then
+        popd > /dev/null
+        error_exit "Failed to remove old root data." 3 4
+    fi
+else
+    popd > /dev/null
+    error_exit "Working directory mismatch. Aborting delete." 3 4
 fi
-rm -rf !(@*)
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to remove old root data."
-    umount /tmp/subvolmnt
-    rmdir /tmp/subvolmnt
-    exit 1
-fi
+
 shopt -u extglob
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to disable extglob."
-    umount /tmp/subvolmnt
-    rmdir /tmp/subvolmnt
-    exit 1
-fi
-cd "$return_to_dir"
+popd > /dev/null
 
-echo "Cleanup..."
-STEP 4 4 "Cleaning up temporary mount..."
-umount /tmp/subvolmnt
-if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to unmount temporary mount."
-    exit 1
-fi
+# ==============================================================================
+# 5. Finish
+# ==============================================================================
+log_step 4 4 "Cleanup complete."
 
-set +e
+# The trap will handle unmounting, but we can do it explicitly to be clean.
+umount "$MOUNT_POINT"
+rmdir "$MOUNT_POINT"
 
-rmdir /tmp/subvolmnt
-
+echo "[+] Conversion confirmed successful. System is optimized."
 exit 0
