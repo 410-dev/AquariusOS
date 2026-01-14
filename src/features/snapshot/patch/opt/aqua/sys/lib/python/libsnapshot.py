@@ -14,7 +14,7 @@ from datetime import datetime
 # ==============================================================================
 REGISTRY_CHECK_CMD = [
     "/opt/aqua/sys/sbin/reg.sh", "root", "read",
-    "HKEY_LOCAL_MACHINE/SYSTEM/Features/me.hysong.SnapshotSupport/Enabled"
+    "HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled"
 ]
 MOUNT_POINT = "/mnt/btrfs_lib_root"
 GRUB_CFG_PATH = "/etc/grub.d/42_btrfs_snapshots"
@@ -34,7 +34,7 @@ class BtrfsSnapshotManager:
             if os.path.exists(REGISTRY_CHECK_CMD[0]):
                 res = subprocess.check_output(REGISTRY_CHECK_CMD).decode().strip()
                 if res != "True":
-                    raise SnapshotError("Feature 'me.hysong.SnapshotSupport' is not enabled.")
+                    raise SnapshotError("Feature 'snapshot' is not enabled.")
         except subprocess.CalledProcessError:
             pass
         if os.geteuid() != 0:
