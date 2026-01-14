@@ -85,7 +85,7 @@
             ["sudo", "chown", "{{{Runner}}}:{{{Runner}}}", "{{{Temporary}}}/step_1.deb"],
             ["sudo", "chmod", "644", "{{{Temporary}}}/step_1.deb"],
             ["sudo", "chown", "-R", "{{{Runner}}}:{{{Runner}}}", "{{{Temporary}}}/step_1"],
-            ["mv", "{{{Temporary}}}/step_1.deb", "{{{Output}}}/{{{Name}}}-{{{Version}}}-{{{Codename}}}-{{{ReleaseType}}}.deb"],
+            ["mv", "{{{Temporary}}}/step_1.deb", "{{{Output}}}/osaqua.deb"],
             ["rm", "-rf", "{{{Temporary}}}"]
         ],
         "OutputPatterns": [
