@@ -1,12 +1,10 @@
-import sys
-import os
 import requests
 
-import libreg as reg
-import libapplog as logger
-import libcryptography as cred
+from oscore import libreg as reg
+from oscore import libapplog as logger
+from oscore import libcryptography as cred
 
-import directorysvc.protocol as protocol
+from nanodir import protocol as protocol
 
 
 def make_request(body: dict) -> dict[str, str]:
@@ -44,6 +42,7 @@ def make_request(body: dict) -> dict[str, str]:
     return protocol.parse_response_v1(response.text, header[0])
 
 
+
 def request_policy() -> dict[str, str]:
     # 1차 요청
     # 다음 명령어를 수행할 수 있는 권한 토큰 요청
@@ -53,7 +52,7 @@ def request_policy() -> dict[str, str]:
     response: dict[str, str] = make_request(body)
 
     # 응답 파싱
-    body: str = response.get("body", {})
+    body: dict = response.get("body", {})
     if not body or "status" not in body or body["status"] != "OK":
         logger.error("Failed to retrieve policy from Directory Service.")
         return {}
@@ -75,21 +74,9 @@ def request_policy() -> dict[str, str]:
 
     final_response: dict[str, str] = make_request(body)
 
-    body: str = final_response.get("body", {})
+    body: dict = final_response.get("body", {})
     if not body or "status" not in body or body["status"] != "OK":
         logger.error("Failed to retrieve policy from Directory Service.")
         return {}
 
     return final_response
-
-def main():
-
-    # Check if directory service is enabled
-    enabled: bool = reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupEnrollment/Enabled", False)
-    if not enabled:
-        logger.info("Directory Service is disabled. Exiting DirectoryServiceClientAgent.")
-        return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

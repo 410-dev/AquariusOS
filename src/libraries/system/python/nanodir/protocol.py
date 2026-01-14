@@ -40,13 +40,13 @@ def make_clientside_header_v1() -> tuple[str, str]:
 
     # 값 유효성 체크
     if not dc_pk:
-        logger.info("Directory Service is disabled. (Invalid DCPK setup)")
+        logger.info("NanoDirectory is disabled. (Invalid DCPK setup)")
         return "", ""
     if not dc_identifier:
-        logger.info("Directory Service is disabled. (Invalid DCID setup)")
+        logger.info("NanoDirectory is disabled. (Invalid DCID setup)")
         return "", ""
     if not registered_id:
-        logger.info("Directory Service is disabled. (Invalid RGID setup)")
+        logger.info("NanoDirectory is disabled. (Invalid RGID setup)")
         return "", ""
 
     session_key: str = "".join(random.choices("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", k=32))
@@ -54,13 +54,13 @@ def make_clientside_header_v1() -> tuple[str, str]:
     return session_key, f"DCMP1:{dc_identifier}:{registered_id}:{session_key}"
 
 def make_serverside_header_v1(session_relay: str) -> str:
-    is_server_enabled: bool = reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupController/Enabled", False)
+    is_server_enabled: bool = reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/NanoDirectory/Enabled", False)
     if not is_server_enabled:
-        logger.info("Directory Service is disabled.")
+        logger.info("NanoDirectory is disabled.")
         return ""
-    server_identifier: str = reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/GroupController/Identifier", "")
+    server_identifier: str = reg.read("HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Control/NanoDirectory/Identifier", "")
     if not server_identifier:
-        logger.info("Directory Service is not configured correctly. (Invalid SRVID setup)")
+        logger.info("NanoDirectory is not configured correctly. (Invalid SRVID setup)")
         return ""
     return f"DSMP1:{server_identifier}:_:{session_relay}"
 
@@ -71,13 +71,13 @@ def parse_response_v1(response: str, decryption_key: str) -> dict[str, str]:
 
     # 갯수는 5개여야 함
     if len(lines) != 5:
-        logger.error("Invalid response format received from Directory Service.")
+        logger.error("Invalid response format received from NanoDirectory.")
         return {}
 
     # 버전 체크
     version = lines[0]
     if version != "DSMP1":
-        logger.error(f"Unsupported Directory Service response version: {version}")
+        logger.error(f"Unsupported NanoDirectory response version: {version}")
         return {}
 
     # 바디 복호화
@@ -99,7 +99,7 @@ def parse_response_v1(response: str, decryption_key: str) -> dict[str, str]:
         }
 
     except Exception as e:
-        logger.error(f"Failed to decrypt or parse Directory Service response body: {str(e)}")
+        logger.error(f"Failed to decrypt or parse NanoDirectory response body: {str(e)}")
         return {}
 
     # 결과 반환
