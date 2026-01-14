@@ -41,6 +41,12 @@ case "$ACTION" in
             exit 1
         fi
 
+        blacklisted=",$(/opt/aqua/sys/sbin/reg.sh root read "HKEY_LOCAL_MACHINE/SYSTEM/Policies/Features/Blacklisted" 2>/dev/null),"
+        if [[ "$blacklisted" == *",$FEATURE_NAME,"* ]]; then
+            echo "Error: Feature '$FEATURE_NAME' is blacklisted and cannot interact."
+            exit 1
+        fi
+
         # If --one-way-enablement is not specified, check for disable script
         if [[ ! -f "$FEATURE_PATH/disable.sh" ]] && [[ -z "$(echo "$@" | grep \\--one-way-enablement)" ]]; then
             echo "Error: Feature '$FEATURE_NAME' cannot be disabled once enabled. Use --one-way-enablement to override."
@@ -88,6 +94,12 @@ case "$ACTION" in
             exit 1
         fi
 
+        blacklisted=",$(/opt/aqua/sys/sbin/reg.sh root read "HKEY_LOCAL_MACHINE/SYSTEM/Policies/Features/Blacklisted" 2>/dev/null),"
+        if [[ "$blacklisted" == *",$FEATURE_NAME,"* ]]; then
+            echo "Error: Feature '$FEATURE_NAME' is blacklisted and cannot interact."
+            exit 1
+        fi
+
         # Check registry
         REG_STATUS=$(/opt/aqua/sys/sbin/reg.sh root read "HKEY_LOCAL_MACHINE/SYSTEM/Features/$FEATURE_NAME/Enabled" 2>/dev/null)
         if [[ "$REG_STATUS" != "1" && "$REG_STATUS" != "True" ]]; then
@@ -112,11 +124,18 @@ case "$ACTION" in
         ;;
 
     list)
+        blacklisted=",$(/opt/aqua/sys/sbin/reg.sh root read "HKEY_LOCAL_MACHINE/SYSTEM/Policies/Features/Blacklisted" 2>/dev/null),"
         for dir in "${FEATURES_DIR[@]}"; do
             if [[ -d "$dir" ]]; then
                 for feature in "$dir"/*; do
                     if [[ -d "$feature" ]]; then
                         feature_name=$(basename "$feature")
+
+                        # Check if feature name is in blacklisted list
+                        if [[ "$blacklisted" == *",$feature_name,"* ]]; then
+                            continue
+                        fi
+
                         enabled=$(/opt/aqua/sys/sbin/reg.sh root read "HKEY_LOCAL_MACHINE/SYSTEM/Features/$feature_name/Enabled" 2>/dev/null)
                         if [[ "$enabled" == "1" || "$enabled" == "True" ]];
                         then
