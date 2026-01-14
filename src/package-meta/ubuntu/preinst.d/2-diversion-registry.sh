@@ -10,5 +10,8 @@ function divert() {
 
 divert "/usr/share/icons/Yaru/scalable/places/start-here-symbolic.svg"
 divert "/etc/os-release"
+divert "/usr/share/plymouth/ubuntu-logo.png"
+divert "/usr/share/pixmaps/ubuntu-logo-text.png"
+divert "/usr/share/pixmaps/ubuntu-logo-text-dark.png"
 
 unset -f divert
