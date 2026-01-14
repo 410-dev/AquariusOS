@@ -4,7 +4,7 @@ After=me.hysong.aqua.services.VFSMK.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/sbin/apprun.sh /opt/aqua/services/me.hysong.services.nixshcompliance.apprun
+ExecStart=/usr/local/sbin/apprun.sh /opt/aqua/sys/services/me.hysong.services.nixshcompliance.apprun
 #StandardOutput=journal
 
 [Install]
