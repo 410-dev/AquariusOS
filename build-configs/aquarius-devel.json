@@ -31,6 +31,7 @@
         ],
         "SetExecutables": [
             "*.sh",
+            "*.py",
             "preinst",
             "postinst",
             "prerm",
