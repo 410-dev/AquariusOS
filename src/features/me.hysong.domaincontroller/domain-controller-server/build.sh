@@ -1,3 +1,4 @@
 #!/bin/bash
 
-./gradlew build
+chmod +x ./gradlew
+./gradlew clean build --stacktrace
