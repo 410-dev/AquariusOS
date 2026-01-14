@@ -14,7 +14,6 @@ fi
 
 ACTION="$1"
 FEATURE_NAME="$2"
-EXPERIMENTAL_FLAG="$3"
 
 if [[ "$ACTION" == "enable" || "$ACTION" == "disable" || "$ACTION" == "status" ]]; then
     if [[ -z "$FEATURE_NAME" ]]; then
@@ -43,7 +42,7 @@ case "$ACTION" in
         fi
 
         # If --one-way-enablement is not specified, check for disable script
-        if [[ -f "$FEATURE_PATH/disable.sh" && "$EXPERIMENTAL_FLAG" != "--one-way-enablement" ]]; then
+        if [[ ! -f "$FEATURE_PATH/disable.sh" ]] && [[ -z "$(echo "$@" | grep \\--one-way-enablement)" ]]; then
             echo "Error: Feature '$FEATURE_NAME' cannot be disabled once enabled. Use --one-way-enablement to override."
             exit 1
         fi
@@ -56,7 +55,7 @@ case "$ACTION" in
             fi
         fi
 
-        if [[ -f "$FEATURE_PATH/ExperimentalFeature" ]] && [[ "$EXPERIMENTAL_FLAG" != "--experimental" ]]; then
+        if [[ -f "$FEATURE_PATH/ExperimentalFeature" ]] && [[ -z "$(echo "$@" | grep \\--experimental)" ]]; then
             echo "Error: Feature '$FEATURE_NAME' is experimental and cannot be enabled without the --experimental flag."
             exit 1
         fi
