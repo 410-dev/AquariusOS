@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import argparse
-from libsnapshotutil import BtrfsSnapshotManager, SnapshotError
+from libsnapshot import BtrfsSnapshotManager, SnapshotError
 
 def main():
     parser = argparse.ArgumentParser(description="Btrfs Snapshot Manager (Python Refactor)")
@@ -38,7 +38,10 @@ def main():
             print(f"{'Snapshot Name':<40} | {'Type':<10} | {'Kernel':<10}")
             print("-" * 65)
             for s in snaps:
-                print(f"{s['name']:<40} | {s['type']:<10} | {s['kernel']:<10}")
+                try:
+                    print(f"{s['name']:<40} | {s['type']:<10} | {s['kernel']:<10}")
+                except:
+                    print(f"{s['name']:<40} | {'N/A':<10} | {'N/A':<10}")
 
         elif args.command == "delete":
             mgr.delete_snapshot(args.target)
