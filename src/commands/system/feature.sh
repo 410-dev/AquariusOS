@@ -54,7 +54,7 @@ case "$ACTION" in
         fi
 
         if [[ -f "$FEATURE_PATH/compatibility.sh" ]]; then
-            sudo bash "$FEATURE_PATH/compatibility.sh"
+            sudo bash "$FEATURE_PATH/compatibility.sh" "$FEATURE_PATH" "$@"
             if [[ $? -ne 0 ]]; then
                 echo "Error: Feature '$FEATURE_NAME' is not compatible with the current system."
                 exit 1
@@ -74,7 +74,7 @@ case "$ACTION" in
         fi
 
         if [[ -f "$FEATURE_PATH/enable.sh" ]]; then
-            sudo bash "$FEATURE_PATH/enable.sh"
+            sudo bash "$FEATURE_PATH/enable.sh" "$FEATURE_PATH" "$@"
             if [[ $? -ne 0 ]]; then
                 echo "Error: Failed to enable feature '$FEATURE_NAME'."
                 exit 1
@@ -108,7 +108,7 @@ case "$ACTION" in
         fi
 
         if [[ -f "$FEATURE_PATH/disable.sh" ]]; then
-            sudo bash "$FEATURE_PATH/disable.sh"
+            sudo bash "$FEATURE_PATH/disable.sh" "$FEATURE_PATH" "$@"
             if [[ $? -ne 0 ]]; then
                 echo "Error: Failed to disable feature '$FEATURE_NAME'."
                 exit 1
