@@ -1,9 +1,9 @@
 [submodule "src/frameworks/AppRun"]
 	path = src/frameworks/AppRun
 	url = https://github.com/410-dev/AppRun
-[submodule "src/features/me.hysong.domaincontroller/domain-controller-server/lib/libcodablejdbc"]
-	path = src/features/me.hysong.domaincontroller/domain-controller-server/lib/libcodablejdbc
+[submodule "src/features/domain-controller/domain-controller-server/lib/libcodablejdbc"]
+	path = src/features/domain-controller/domain-controller-server/lib/libcodablejdbc
 	url = https://github.com/410-dev/libcodablejdbc.git
-[submodule "src/features/me.hysong.domaincontroller/domain-controller-server/lib/libcodablejson"]
-	path = src/features/me.hysong.domaincontroller/domain-controller-server/lib/libcodablejson
+[submodule "src/features/domain-controller/domain-controller-server/lib/libcodablejson"]
+	path = src/features/domain-controller/domain-controller-server/lib/libcodablejson
 	url = https://github.com/410-dev/libcodablejson.git
