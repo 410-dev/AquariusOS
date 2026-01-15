@@ -10,10 +10,10 @@ apt install overlayroot -y
 grub-install --modules=btrfs
 
 # Copy current bundle patch/* to root
-cp -r /opt/aqua/features/me.hysong.snapshot/patch/* /
+cp -r "$1/patch"/* /
 ln -sf /opt/aqua/sys/lib/python/libsnapshot.py /usr/lib/python3/dist-packages/libsnapshot.py
 
-/opt/aqua/sys/sbin/preboot.sh SetNextInstallmentScript /opt/aqua/features/me.hysong.snapshot/stages/stage1.sh
+/opt/aqua/sys/sbin/preboot.sh SetNextInstallmentScript "$1/stages/stage1.sh"
 
 echo "Feature enablement will be applied on next reboot. Several reboots may be required to complete the process."
 exit 0
