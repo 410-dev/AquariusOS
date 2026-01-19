@@ -9,7 +9,7 @@ def main():
 
     while True:
         # 레지스트리에서 대기 시간 읽기 (기본값 60초)
-        latency_reg = reg.read("SYSTEM/Services/me.hysong.aqua.services.VFSGC/Latency", 60)
+        latency_reg = reg.read("/SYSTEM/Services/me.hysong.aqua/VFSGC/Latency", 60)
         try:
             latency = int(latency_reg)
         except Exception as e:
@@ -24,7 +24,7 @@ def main():
             all_access_files: dict[str, dict[str, any]] = vfs.get_all_access_records()
 
             # TTL 값 읽기 (기본값 3600초)
-            global_ttl = reg.read("SYSTEM/Services/me.hysong.aqua.services.VFSGC/TTL", 3600)
+            global_ttl = reg.read("/SYSTEM/Services/me.hysong.aqua/VFSGC/TTL", 3600)
             try:
                 global_ttl = int(global_ttl)
             except Exception as e:

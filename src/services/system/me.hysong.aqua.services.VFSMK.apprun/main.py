@@ -12,7 +12,7 @@ def main():
     
     exec_py = "/opt/aqua/sys/sbin/mkvfs.py"
     mnt_pty = "/opt/aqua/vfs"
-    sz = reg.read("SYSTEM/Services/me.hysong.aqua.services.VFSMK/SizeMB", 4096)
+    sz = reg.read("/SYSTEM/Services/me.hysong.aqua/VFSMK/SizeMB", 4096)
     try:
         sz = int(sz)
     except Exception as e:
