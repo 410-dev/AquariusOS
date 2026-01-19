@@ -7,3 +7,6 @@ for user in $users; do
     usermod -aG kvm "$user"
 done
 systemctl enable --now libvirtd
+
+# Copy current bundle patch/* to root
+cp -r "$1/patch"/* /
