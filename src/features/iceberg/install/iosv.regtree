@@ -1,0 +1,7 @@
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/IOServer/Port:dword=57500
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/IOServer/Whitelisted:list=0.0.0.0
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/IOServer/AllowSynchronizer:bool=false
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/IOServer/DatabaseControls/Host:str=127.0.0.1
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/IOServer/DatabaseControls/Port:dword=3306
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/IOServer/DatabaseControls/Credentials:list=
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/IOServer/DatabaseControls/SchemaVersion:dword=1

@@ -1,0 +1,10 @@
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/CurrentMachineIsUpstream:bool=False
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/Upstreams/0001/URL:str=
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/Upstreams/0001/Enabled:bool=False
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/Upstreams/0001/RequestCredentials:str=
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/Upstreams/0001/Interval:dword=60000
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/Upstreams/0001/BackPropagation:bool=False
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/DatabaseControls/Host:str=127.0.0.1
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/DatabaseControls/Port:dword=3306
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/DatabaseControls/Credentials:list=
+?HKEY_LOCAL_MACHINE/SOFTWARE/Services/Acadia/Iceberg/Grid/DatabaseControls/SchemaVersion:dword=1
