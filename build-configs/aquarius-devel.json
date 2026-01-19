@@ -13,8 +13,8 @@
             "PrettyName": "AquariusOS",
             "CODENAME": "Genesis",
             "NAME": "VAL:DisplayName",
-            "BUILD_DATE": "RUN:date +%y%m%d%H%M%S",
-            "VERSION": "RUN:date +%y%m%d%H%M%S",
+            "BUILD_DATE": "RUN:date +%y%m.%d.%H%M%S",
+            "VERSION": "RUN:date +%y%m.%d.%H%M",
             "UPSTREAM": "VAL:TargetDistro",
             "RELEASE_TYPE": "Experimental"
         },
