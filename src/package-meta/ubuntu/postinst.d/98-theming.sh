@@ -1,6 +1,6 @@
 #!/bin/bash
 
-graphic_code="new-york"
+graphic_code="{{{CODENAME}}}"
 if mark_equals "AquariusOSSetupDone.GraphicCode.var" "$graphic_code" ; then
     echo "Marked as setup done for graphic code $graphic_code. Skipping..."
 else
