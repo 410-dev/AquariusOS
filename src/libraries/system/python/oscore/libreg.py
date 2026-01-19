@@ -249,9 +249,6 @@ def write(
     dir_path = os.path.dirname(base_no_ext)
     _ensure_dir(dir_path)
 
-    # uid = os.getuid()
-    # gid = os.getgid()
-
     # Get uid gid of specified user for HKCU ownership
     uid = os.getuid()
     gid = os.getgid()
@@ -312,6 +309,30 @@ def write(
         except PermissionError:
             pass  # Ignore if we don't have permission to change ownership
 
+    # Check update hooks
+    # HKLM/SYSTEM/AquaCore/Registry/UpdateHooks/*
+    keyPath = f"{target_hive}/{rel}"
+    keyPath = keyPath.replace("/", "<d>")
+    hooks = read(f"HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/{keyPath}", default=[])
+    if isinstance(hooks, list):
+        for exec_line in hooks:
+            # Each exec_line is a path to an executable hook
+            # Split by shell escape
+            hook = exec_line.strip()
+            hook = hook.replace("{}", f'"{data}"')
+            command_bin = hook.split()[0]
+            if os.path.isfile(command_bin) and os.access(command_bin, os.X_OK):
+                os.system(hook)
+
+    elif isinstance(hooks, str):
+        exec_line = hooks.strip()
+        exec_line = exec_line.replace("{}", f'"{data}"')
+        command_bin = exec_line.split()[0]
+        if os.path.isfile(command_bin) and os.access(command_bin, os.X_OK):
+            os.system(exec_line)
+
+    else:
+        pass  # No hooks to run
 
 def delete(
     registry_path: str,
