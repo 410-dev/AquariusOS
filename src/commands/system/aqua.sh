@@ -201,7 +201,7 @@ EOF
                 echo "Setting wallpapers for graphic code: $GRAPHIC_CODE"
 
                 # Update registry
-                sudo /opt/aqua/sys/sbin/reg.sh root write HKEY_LOCAL_MACHINE/SYSTEM/LocalSettings/Graphics/Gnome/GraphicCode str "$GRAPHIC_CODE"
+                /opt/aqua/sys/sbin/reg.sh $(whoami) write HKEY_CURRENT_USER/SYSTEM/LocalSettings/Graphics/Gnome/GraphicCode str "$GRAPHIC_CODE"
 
                 echo "Wallpapers set successfully."
                 ;;
