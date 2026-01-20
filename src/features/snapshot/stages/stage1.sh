@@ -50,7 +50,7 @@ btrfs subvolume create /@home
 log_step 2 8 "Updating fstab and moving /home data..."
 
 # Call existing python helper for fstab (Assuming it handles UUIDs correctly)
-python3 "/opt/aqua/features/me.hysong.SnapshotSupport/fstab_editor.py" "$(findmnt --output=UUID --noheadings --target=/)"
+python3 "/opt/aqua/features/snapshot/fstab_editor.py" "$(findmnt --output=UUID --noheadings --target=/)"
 if [[ $? -ne 0 ]]; then error_exit "fstab update failed." 2 8; fi
 
 # Move Home Data
@@ -68,7 +68,7 @@ rm -rf /@/home/*
 log_step 3 8 "Updating GRUB configuration..."
 
 # 3a. Call stage1 python editor (likely handles basic grub file edits)
-python3 "/opt/aqua/features/me.hysong.SnapshotSupport/grub_editor_stg1.py"
+python3 "/opt/aqua/features/snapshot/grub_editor_stg1.py"
 if [[ $? -ne 0 ]]; then error_exit "GRUB python update failed." 3 8; fi
 
 # ==============================================================================
@@ -144,7 +144,7 @@ log_step 8 8 "Cleaning up and setting next stage..."
 
 sync
 
-/opt/aqua/sys/sbin/preboot.sh SetNextInstallmentScript /opt/aqua/features/me.hysong.SnapshotSupport/stages/stage2.sh
+/opt/aqua/sys/sbin/preboot.sh SetNextInstallmentScript /opt/aqua/features/snapshot/stages/stage2.sh
 if [[ $? -ne 0 ]]; then error_exit "Setting next installment script failed." 8 8; fi
 
 echo "[+] Stage 1 Complete. Ready for reboot."
