@@ -139,4 +139,5 @@ umount "$MOUNT_POINT"
 rmdir "$MOUNT_POINT"
 
 echo "[+] Conversion confirmed successful. System is optimized."
+sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled" bool 1
 exit 0
