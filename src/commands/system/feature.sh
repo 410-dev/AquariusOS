@@ -75,12 +75,36 @@ case "$ACTION" in
 
         if [[ -f "$FEATURE_PATH/enable.sh" ]]; then
             sudo bash "$FEATURE_PATH/enable.sh" "$FEATURE_PATH" "$@"
-            if [[ $? -ne 0 ]]; then
+            ec=$?
+            if [[ $ec -ne 0 ]] && [[ $ec -ne 100 ]]; then
                 echo "Error: Failed to enable feature '$FEATURE_NAME'."
                 exit 1
             fi
-            sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/$FEATURE_NAME/Enabled" bool 1
-            echo "Feature '$FEATURE_NAME' enabled."
+            if [[ $ec -eq 0 ]]; then
+                sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/$FEATURE_NAME/Enabled" bool 1
+                echo "Feature '$FEATURE_NAME' enabled."
+            elif [[ $ec -eq 100 ]]; then
+                echo "Feature '$FEATURE_NAME' enabled. A system restart is required for changes to take effect."
+                # If GUI environment, use zenity to prompt for restart
+                if [[ -n "$DISPLAY" ]] && command -v zenity >/dev/null
+                then
+                    zenity --question --title="System Restart Required" --text="Feature '$FEATURE_NAME' has been enabled. A system restart is required for changes to take effect.\n\nWould you like to restart now?" --width=400
+                    if [[ $? -eq 0 ]]; then
+                        sudo systemctl reboot
+                    else
+                        echo "Please remember to restart your system later."
+                    fi
+                elif [[ -z "$(echo "$@" | grep \\--no-interaction)" ]]; then
+                    read -p "Feature '$FEATURE_NAME' has been enabled. A system restart is required for changes to take effect. Restart now? (y/N): " response
+                    if [[ "$response" == "y" || "$response" == "Y" ]]; then
+                        sudo systemctl reboot
+                    else
+                        echo "Please remember to restart your system later."
+                    fi
+                else
+                    echo "Please remember to restart your system later."
+                fi
+            fi
         else
             echo "Error: Enable script not found for feature '$FEATURE_NAME'."
             exit 1
@@ -109,14 +133,38 @@ case "$ACTION" in
 
         if [[ -f "$FEATURE_PATH/disable.sh" ]]; then
             sudo bash "$FEATURE_PATH/disable.sh" "$FEATURE_PATH" "$@"
-            if [[ $? -ne 0 ]]; then
+
+            ec=$?
+            if [[ $ec -ne 0 ]]; then
                 echo "Error: Failed to disable feature '$FEATURE_NAME'."
                 exit 1
             fi
+            if [[ $ec -eq 0 ]]; then
+                sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/$FEATURE_NAME/Enabled" bool 0
+                echo "Feature '$FEATURE_NAME' disabled."
+            elif [[ $ec -eq 100 ]]; then
+                echo "Feature '$FEATURE_NAME' disabled. A system restart is required for changes to take effect."
+                # If GUI environment, use zenity to prompt for restart
+                if [[ -n "$DISPLAY" ]] && command -v zenity >/dev/null
+                then
+                    zenity --question --title="System Restart Required" --text="Feature '$FEATURE_NAME' has been disabled. A system restart is required for changes to take effect.\n\nWould you like to restart now?" --width=400
+                    if [[ $? -eq 0 ]]; then
+                        sudo systemctl reboot
+                    else
+                        echo "Please remember to restart your system later."
+                    fi
+                elif [[ -z "$(echo "$@" | grep \\--no-interaction)" ]]; then
+                    read -p "Feature '$FEATURE_NAME' has been disabled. A system restart is required for changes to take effect. Restart now? (y/N): " response
+                    if [[ "$response" == "y" || "$response" == "Y" ]]; then
+                        sudo systemctl reboot
+                    else
+                        echo "Please remember to restart your system later."
+                    fi
+                else
+                    echo "Please remember to restart your system later."
+                fi
+            fi
 
-            sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/$FEATURE_NAME/Enabled" bool 0
-
-            echo "Feature '$FEATURE_NAME' disabled."
         else
             echo "Error: Disable script not found for feature '$FEATURE_NAME'."
             exit 1
