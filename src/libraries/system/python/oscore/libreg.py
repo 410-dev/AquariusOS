@@ -258,7 +258,7 @@ def write(
         pw_record = pwd.getpwnam(os.path.basename(user_home))
         uid = pw_record.pw_uid
         gid = pw_record.pw_gid
-        print(f"Writing as user UID: {uid}, GID: {gid}")
+        # print(f"Writing as user UID: {uid}, GID: {gid}")
 
     # If current hive is HKCU, make sure to set proper ownership (current user)
     if target_hive == "HKEY_CURRENT_USER":
@@ -439,7 +439,7 @@ def _main():
         typedef = sys.argv[4]
         value = sys.argv[5]
         write(user, path, value, hive_map=custom_hive_map, typedef=typedef)
-        print(f"Wrote to '{path}': {value}")
+        # print(f"Wrote to '{path}': {value}")
     elif action == "install":
         # Read a file as an input value
         if len(sys.argv) < 4:
@@ -493,7 +493,7 @@ def _main():
 
     elif action == "delete":
         ok = delete(path, hive_map=custom_hive_map)
-        print(f"Deleted '{path}': {ok}")
+        # print(f"Deleted '{path}': {ok}")
     else:
         print(f"Unknown action: {action}")
 
