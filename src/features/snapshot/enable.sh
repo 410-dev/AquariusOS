@@ -16,4 +16,4 @@ ln -sf /opt/aqua/sys/lib/python/libsnapshot.py /usr/lib/python3/dist-packages/li
 /opt/aqua/sys/sbin/preboot.sh SetNextInstallmentScript "$1/stages/stage1.sh"
 
 echo "Feature enablement will be applied on next reboot. Several reboots may be required to complete the process."
-exit 0
+exit 100
