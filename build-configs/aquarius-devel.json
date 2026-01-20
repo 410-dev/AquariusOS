@@ -46,6 +46,9 @@
     "MaintainerScriptBlacklist": [
 
     ],
+    "SubmoduleBuildPriority": [
+        "libraries/system", "libraries/extension"
+    ],
     "Mapping": {
         "rootfs": "/",
         "branding": "/",
