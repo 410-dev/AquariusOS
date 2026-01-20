@@ -55,7 +55,7 @@
         "core": "/opt/aqua/sys",
         "features": "/opt/aqua/features",
         "libraries/system": "/opt/aqua/sys/lib",
-        "libraries/user": "/opt/aqua/lib",
+        "libraries/extension": "/opt/aqua/lib",
         "services/system": "/opt/aqua/sys/services",
         "services/user": "/opt/aqua/services",
         "resources": "/opt/aqua/share",
