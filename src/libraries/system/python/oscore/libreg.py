@@ -310,10 +310,19 @@ def write(
             pass  # Ignore if we don't have permission to change ownership
 
     # Check update hooks
-    # HKLM/SYSTEM/AquaCore/Registry/UpdateHooks/*
-    keyPath = f"{target_hive}/{rel}"
-    keyPath = keyPath.replace("/", "<d>")
-    hooks = read(f"HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/{keyPath}", default=[])
+    #
+    keyPath_explicit_path = rel.replace("/", "<d>")
+    keyPath_implicit_path = registry_path.lstrip("/").replace("/", "<d>")
+    hook_path = "HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/"
+    hooks_explicit_path = read(f"{hook_path}/{keyPath_explicit_path}", default=[])
+    hooks_implicit_path = read(f"{hook_path}/{keyPath_implicit_path}", default=[])
+
+    # Explicit goes higher priority than implicit
+    if isinstance(hooks_explicit_path, list) and hooks_explicit_path:
+        hooks = hooks_explicit_path
+    else:
+        hooks = hooks_implicit_path
+
     if isinstance(hooks, list):
         for exec_line in hooks:
             # Each exec_line is a path to an executable hook
