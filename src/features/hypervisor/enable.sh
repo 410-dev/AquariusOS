@@ -1,6 +1,6 @@
 #!/bin/bash
 
-apt install qemu-kvm libvirt-daemon-system libvirt-clients virtinst virt-manager bridge-utils
+apt install -y qemu-kvm libvirt-daemon-system libvirt-clients virtinst virt-manager bridge-utils
 users=$(dsl System User List)
 for user in $users; do
     usermod -aG libvirt "$user"
