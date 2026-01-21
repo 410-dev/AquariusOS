@@ -53,12 +53,14 @@ case "$ACTION" in
             exit 1
         fi
 
-        if [[ -f "$FEATURE_PATH/compatibility.sh" ]]; then
+        if [[ -f "$FEATURE_PATH/compatibility.sh" ]] && [[ -z "$(echo "$@" | grep \\--skip-compatibility-check)" ]]; then
             sudo bash "$FEATURE_PATH/compatibility.sh" "$FEATURE_PATH" "$@"
             if [[ $? -ne 0 ]]; then
                 echo "Error: Feature '$FEATURE_NAME' is not compatible with the current system."
                 exit 1
             fi
+        elif [[ ! -z "$(echo "$@" | grep \\--skip-compatibility-check)" ]]; then
+            echo "Warning: Feature compatibility check skipped."
         fi
 
         if [[ -f "$FEATURE_PATH/ExperimentalFeature" ]] && [[ -z "$(echo "$@" | grep \\--experimental)" ]]; then
