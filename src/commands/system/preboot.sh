@@ -89,6 +89,19 @@ case "$1" in
             exit 1
         fi
 
+        # Security check
+        # Check if file is owned by root and not writable by group/others
+        FILE_OWNER=$(stat -c '%U' "$INSTALLMENT_SCRIPT")
+        FILE_PERMS=$(stat -c '%a' "$INSTALLMENT_SCRIPT") # Required to have at most 755 permissions
+        if [[ "$FILE_OWNER" != "root" ]]; then
+            echo "ERR@AquariusOS.Preboot=INVALID_FILE_PERMISSIONS_OWNERSHIP: Installment script must be owned by root."
+            exit 1
+        fi
+        if [[ $((FILE_PERMS % 10)) -ne 5 ]] || [[ $(((FILE_PERMS / 10) % 10)) -ne 5 ]]; then
+            echo "ERR@AquariusOS.Preboot=INVALID_FILE_PERMISSIONS_W_PERMIT: Installment script must not be writable by group or others."
+            exit 1
+        fi
+
         mkdir -p "$(dirname "$COPY_TO")"
         ln -sf "$INSTALLMENT_SCRIPT" "$COPY_TO"
         ;;
