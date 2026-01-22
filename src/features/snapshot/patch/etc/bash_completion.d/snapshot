@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+_snapshot_completion() {
+
+    return 0
+}
+
+# Bind completion to both valid command names
+complete -F _snapshot_completion snapshot
