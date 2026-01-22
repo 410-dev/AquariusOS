@@ -11,8 +11,10 @@ if "--rollback" in sys.argv:
     content = content.replace("GRUB_TIMEOUT_STYLE=menu", "GRUB_TIMEOUT_STYLE=hidden")
     content = content.replace("GRUB_TIMEOUT=3", "GRUB_TIMEOUT=0")
 else:
-    content.replace("GRUB_TIMEOUT_STYLE=hidden", "GRUB_TIMEOUT_STYLE=menu")
-    content.replace("GRUB_TIMEOUT=0", "GRUB_TIMEOUT=3")
+    print(f"Detected 'hidden' grub menu. Updating..." if "GRUB_TIMEOUT_STYLE=hidden" in content else f"Timeout style undetected...")
+    content = content.replace("GRUB_TIMEOUT_STYLE=hidden", "GRUB_TIMEOUT_STYLE=menu")
+    print(f"Detected '0' grub timeout. Updating..." if "GRUB_TIMEOUT=0" in content else f"Timeout undetected...")
+    content = content.replace("GRUB_TIMEOUT=0", "GRUB_TIMEOUT=3")
 
 with open(grub_cfg_path, "w") as fstab:
     fstab.writelines(content)
