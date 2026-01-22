@@ -11,7 +11,7 @@ log_step() {
     # Usage: log_step <current> <total> <message>
     echo "[Step $1/$2] $3"
     # Call original logging hook if it exists
-    if type STEP &>/dev/null; then STEP "$1" "$2" "$3"; fi
+    if type STEP &>/dev/null; then STEP "$1" "$2" "[1/3] [$1/$2] $3"; fi
 }
 
 error_exit() {

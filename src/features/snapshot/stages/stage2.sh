@@ -17,7 +17,7 @@ if [[ -d "/sys/firmware/efi" ]]; then IS_EFI=true; fi
 # --- Helper Functions ---
 log_step() {
     echo "[Step $1/$2] $3"
-    if type STEP &>/dev/null; then STEP "$1" "$2" "$3"; fi
+    if type STEP &>/dev/null; then STEP "$1" "$2" "[2/3] [$1/$2] $3"; fi
 }
 
 error_exit() {
@@ -132,12 +132,18 @@ popd > /dev/null
 # ==============================================================================
 # 5. Finish
 # ==============================================================================
+/opt/aqua/sys/sbin/preboot.sh SetNextInstallmentScript /opt/aqua/features/snapshot/stages/stage3.sh
+if [[ $? -ne 0 ]]; then error_exit "Setting next installment script failed." 8 8; fi
 log_step 4 4 "Cleanup complete."
 
 # The trap will handle unmounting, but we can do it explicitly to be clean.
 umount "$MOUNT_POINT"
 rmdir "$MOUNT_POINT"
 
+
+python3 "/opt/aqua/features/snapshot/grub_editor_stg1.py"
+if [[ $? -ne 0 ]]; then error_exit "GRUB configuration patch (2) update failed." 4 4; fi
+
 echo "[+] Conversion confirmed successful. System is optimized."
-sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled" bool 1
+#sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled" bool 1
 exit 0
