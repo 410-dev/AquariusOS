@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ "$(/opt/aqua/sys/sbin/reg.sh root read 'HKEY_LOCAL_MACHINE/SYSTEM/Features/me.hysong.SnapshotSupport/Enabled')" != "True" ]]; then
+if [[ "$(/opt/aqua/sys/sbin/reg.sh root read 'HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled')" != "True" ]]; then
     echo "Service incompatible: Snapshot support feature is not enabled."
     exit 0
 fi
@@ -9,19 +9,6 @@ fi
 sleep 3
 
 function SET_SAFE_WALLPAPER() {
-#    for bus in /run/user/*/bus; do
-#        uid=$(basename "$(dirname "$bus")")
-#        user=$(getent passwd "$uid" | cut -d: -f1)
-#
-#        sudo -u "$user" DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" gsettings set org.gnome.desktop.background picture-uri "file:///opt/aqua/sys/graphics/safe/snapshot-mode.png"
-#        sudo -u "$user" DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" gsettings set org.gnome.desktop.background picture-uri-dark "file:///opt/aqua/sys/graphics/safe/snapshot-mode.png"
-#        sudo -u "$user" DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" gsettings set org.gnome.desktop.screensaver picture-uri "file:///opt/aqua/sys/graphics/safe/snapshot-mode.png"
-#
-#    done
-#
-#    gsettings set org.gnome.desktop.background picture-uri "file:///opt/aqua/sys/graphics/safe/snapshot-mode.png"
-#    gsettings set org.gnome.desktop.background picture-uri-dark "file:///opt/aqua/sys/graphics/safe/snapshot-mode.png"
-#    gsettings set org.gnome.desktop.screensaver picture-uri "file:///opt/aqua/sys/graphics/safe/snapshot-mode.png"
     echo "SET_SAFE_WALLPAPER called"
     /opt/aisp/sys/sbin/aqua.sh wallpaper --snapshot-mode
 }
