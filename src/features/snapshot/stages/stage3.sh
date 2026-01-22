@@ -14,6 +14,6 @@ log_step 2 3 "Updating GRUB bootloader..."
 update-grub
 log_step 3 3 "Enabling snapshot feature in system registry..."
 sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled" bool 1
-sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SOFTWARE/Services/MoTD/NextOnly/Noti/Info/snapshot-enable-success" string "Snapshot feature enabled successfully."
+sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SOFTWARE/Services/MoTD/NextOnly/Noti/Message/snapshot-enable-success" str "Snapshot feature enabled successfully."
 sleep 1
 exit 100
