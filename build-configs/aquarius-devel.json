@@ -47,7 +47,10 @@
 
     ],
     "SubmoduleBuildPriority": [
-        "libraries/system", "libraries/extension"
+        "libraries/extension/java/libcodablejson",
+        "libraries/extension/java/libcodablejdbc",
+        "libraries/system",
+        "libraries/extension"
     ],
     "Mapping": {
         "rootfs": "/",
