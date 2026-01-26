@@ -18,9 +18,9 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 
-    // Your internal projects
-    implementation(project(":lib:libcodablejdbc"))
-    implementation(project(":lib:libcodablejson"))
+    // Proprietary libraries
+    implementationFirstAvailable("../../../libraries/extension/java/libcodablejson/libcodablejson.jar", "../../../libraries/extension/java/libcodablejson.jar")
+    implementationFirstAvailable("../../../libraries/extension/java/libcodablejdbc/libcodablejdbc.jar", "../../../libraries/extension/java/libcodablejdbc.jar")
 
     // JSON + Database
     implementation("com.google.code.gson:gson:2.12.1")
@@ -69,6 +69,18 @@ tasks.shadowJar {
     archiveClassifier.set("")
     destinationDirectory.set(file("./"))
     mergeServiceFiles()
+}
+
+fun DependencyHandlerScope.implementationFirstAvailable(vararg paths: String) {
+    val foundFile = paths
+        .map { project.file(it) }
+        .firstOrNull { it.exists() }
+    if (foundFile != null) {
+        add("implementation", files(foundFile))
+        logger.lifecycle("Dependency resolved: ${foundFile.path}")
+    } else {
+        logger.warn("Warning: No valid jar found for candidates: ${paths.contentToString()}")
+    }
 }
 
 // Default build will produce both JAR and WAR
