@@ -115,8 +115,15 @@ def main():
 
     print("Policy applied successfully.")
 
+def action_blacklist_package(packages: list[dict]) -> bool:
+
+    reg_path: str = "HKEY_LOCAL_MACHINE/SOFTWARE/Policies/BlacklistedPackages"
+
 
 def action_package_add(packages: list[dict]) -> bool:
+
+    reg_path: str = "HKEY_LOCAL_MACHINE/SOFTWARE/Policies/ProtectedPackages"
+
     apt_unhold: list[str] = ["apt-mark", "unhold"]
     apt_params: list[str] = ["apt", "reinstall", "-y"]
     holds: list[str] = ["apt-mark", "hold"]
@@ -137,7 +144,7 @@ def action_package_add(packages: list[dict]) -> bool:
     # Unlock the modify lock from registry
     try:
         for pkg_id in mod_lock:
-            reg_path = f"HKEY_LOCAL_MACHINE/SOFTWARE/Policies/ProtectedPackages/{pkg_id}"
+            reg_path = f"{reg_path}/{pkg_id}"
             reg.delete(reg_path)
             print(f"Removed modify lock for package: {pkg_id}")
 
@@ -156,7 +163,7 @@ def action_package_add(packages: list[dict]) -> bool:
     # Lock the modify lock in registry
     try:
         for pkg_id in mod_lock:
-            reg_path = f"HKEY_LOCAL_MACHINE/SOFTWARE/Policies/ProtectedPackages/{pkg_id}"
+            reg_path = f"{reg_path}/{pkg_id}"
             reg.write(reg_path, "ModifyLock", 1)
             print(f"Set modify lock for package: {pkg_id}")
     except Exception as e:
