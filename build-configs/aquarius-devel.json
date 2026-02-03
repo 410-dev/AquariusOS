@@ -46,6 +46,11 @@
     "MaintainerScriptBlacklist": [
 
     ],
+    "IgnoreSubmoduleBuildError": {
+        "FileNotFoundError": [
+            "libraries/extension/java/libcodablejdbc/lib/libcodablejson"
+        ]
+    },
     "SubmoduleBuildPriority": [
         "libraries/extension/java/libcodablejson",
         "libraries/extension/java/libcodablejdbc",

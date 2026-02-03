@@ -273,68 +273,105 @@ def build_project(config: dict) -> None:
     for submodule_path in build_queue:
         print(f"    Building submodule at: {submodule_path}")
 
-        # Run the build.sh script
-        result = subprocess.run(['bash', 'build.sh', 'build.json', config['TargetDistro']], cwd=submodule_path)
-        if result.returncode != 0:
-            print(f"Error building submodule at {submodule_path}")
+        try:
+
+            # Run the build.sh script
+            result = subprocess.run(['bash', 'build.sh', 'build.json', config['TargetDistro']], cwd=submodule_path)
+            if result.returncode != 0:
+                print(f"Error building submodule at {submodule_path}")
+                sys.exit(1)
+
+            # Select which one to consider as built output from build.json
+            with open(os.path.join(submodule_path, 'build.json'), 'r') as f:
+                submodule_build_config = json.load(f)
+            output_file = submodule_build_config.get('Output', 'build')
+
+            built_output_path = os.path.join(submodule_path, output_file)
+            if not os.path.exists(built_output_path):
+                print(f"Built output file {built_output_path} does not exist.")
+                sys.exit(1)
+
+            # Check if build map is defined
+            build_map: dict[str, str] = submodule_build_config.get('AsSubmoduleBuildMap', {}).get(
+                config['TargetDistro'].lower(), None)
+
+            # If build map is defined, move files accordingly
+            if build_map is not None:
+                print(f"    Applying build map for submodule...")
+                # Map contains "source": "destination (with its new final name)"
+                for src, dest in build_map.items():
+                    lsrc = os.path.join(built_output_path, src)
+                    ldest = os.path.join(cswd, dest)
+                    print(f"        Moving {lsrc} to {ldest} ({dest})")
+
+                    if not os.path.exists(os.path.dirname(ldest)):
+                        os.makedirs(os.path.dirname(ldest), exist_ok=True)
+                    if os.path.isdir(lsrc):
+                        shutil.copytree(lsrc, ldest, dirs_exist_ok=True)
+                    else:
+
+                        shutil.copy2(lsrc, ldest)
+
+                print(f"    Removing submodule except for built output: {built_output_path}")
+                if os.path.isdir(built_output_path):
+                    shutil.rmtree(built_output_path)
+                if os.path.exists(submodule_path):
+                    shutil.rmtree(submodule_path)
+
+            else:
+                # Copy built output to submodule directory with .out extension
+                containing_parent_path = os.path.dirname(submodule_path)
+                dest_path = os.path.join(containing_parent_path, os.path.basename(built_output_path) + '.out')
+                print(f"    Moving built output to parent directory: {dest_path}")
+                os.rename(built_output_path, dest_path)
+
+                print(f"    Removing submodule except for built output: {built_output_path}")
+                if os.path.isdir(built_output_path):
+                    shutil.rmtree(built_output_path)
+                if os.path.exists(submodule_path):
+                    shutil.rmtree(submodule_path)
+
+                # Rename final output
+                final_submodule_path = submodule_path if submodule_build_config.get("AsOutput",
+                                                                                    None) is None else os.path.join(
+                    os.path.dirname(submodule_path), submodule_build_config["AsOutput"])
+                print("    Renaming .out file back to submodule directory: " + final_submodule_path)
+                os.rename(dest_path, final_submodule_path)
+
+        except Exception as e:
+            # Retrieve the ignore configuration
+            ignore_config = config.get("IgnoreSubmoduleBuildError", {})
+            exception_name = type(e).__name__
+
+            print(f"    [ERROR] {exception_name}: {e}")
+
+            is_ignored = False
+
+            # Check if this specific exception type is listed in the config
+            if exception_name in ignore_config:
+                allowed_paths = ignore_config[exception_name]
+
+                # Normalize the current submodule path for comparison
+                normalized_current_path = os.path.normpath(submodule_path).replace(os.path.abspath(cswd), "")
+                if normalized_current_path.startswith("/"):
+                    normalized_current_path = normalized_current_path[1:]
+
+                # Check if the current path matches any path listed for this exception
+                print(f"    [ERROR] Entry path: {normalized_current_path}")
+                for path_entry in allowed_paths:
+                    if os.path.normpath(path_entry) == normalized_current_path:
+                        print(f"    [Ignored] {exception_name} occurred at {submodule_path}. Skipping per config.")
+                        is_ignored = True
+                        break
+
+            if is_ignored:
+                # Continue to the next submodule in the build_queue
+                continue
+
+            # If the error was not in the ignore list, report and exit
+            print(f"Error building submodule at {submodule_path}: {e}")
+            # Re-raising or exiting is necessary to stop the build on un-ignored errors
             sys.exit(1)
-
-        # Select which one to consider as built output from build.json
-        with open(os.path.join(submodule_path, 'build.json'), 'r') as f:
-            submodule_build_config = json.load(f)
-        output_file = submodule_build_config.get('Output', 'build')
-
-        built_output_path = os.path.join(submodule_path, output_file)
-        if not os.path.exists(built_output_path):
-            print(f"Built output file {built_output_path} does not exist.")
-            sys.exit(1)
-
-        # Check if build map is defined
-        build_map: dict[str, str] = submodule_build_config.get('AsSubmoduleBuildMap', {}).get(
-            config['TargetDistro'].lower(), None)
-
-        # If build map is defined, move files accordingly
-        if build_map is not None:
-            print(f"    Applying build map for submodule...")
-            # Map contains "source": "destination (with its new final name)"
-            for src, dest in build_map.items():
-                lsrc = os.path.join(built_output_path, src)
-                ldest = os.path.join(cswd, dest)
-                print(f"        Moving {lsrc} to {ldest} ({dest})")
-
-                if not os.path.exists(os.path.dirname(ldest)):
-                    os.makedirs(os.path.dirname(ldest), exist_ok=True)
-                if os.path.isdir(lsrc):
-                    shutil.copytree(lsrc, ldest, dirs_exist_ok=True)
-                else:
-
-                    shutil.copy2(lsrc, ldest)
-
-            print(f"    Removing submodule except for built output: {built_output_path}")
-            if os.path.isdir(built_output_path):
-                shutil.rmtree(built_output_path)
-            if os.path.exists(submodule_path):
-                shutil.rmtree(submodule_path)
-
-        else:
-            # Copy built output to submodule directory with .out extension
-            containing_parent_path = os.path.dirname(submodule_path)
-            dest_path = os.path.join(containing_parent_path, os.path.basename(built_output_path) + '.out')
-            print(f"    Moving built output to parent directory: {dest_path}")
-            os.rename(built_output_path, dest_path)
-
-            print(f"    Removing submodule except for built output: {built_output_path}")
-            if os.path.isdir(built_output_path):
-                shutil.rmtree(built_output_path)
-            if os.path.exists(submodule_path):
-                shutil.rmtree(submodule_path)
-
-            # Rename final output
-            final_submodule_path = submodule_path if submodule_build_config.get("AsOutput",
-                                                                                None) is None else os.path.join(
-                os.path.dirname(submodule_path), submodule_build_config["AsOutput"])
-            print("    Renaming .out file back to submodule directory: " + final_submodule_path)
-            os.rename(dest_path, final_submodule_path)
 
     # If _overlay directory exists, copy its contents to step 1 dir
     print(f"\n[3/7] Applying overlay if exists...")
