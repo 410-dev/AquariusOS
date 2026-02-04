@@ -1,5 +1,5 @@
 ?HKEY_LOCAL_MACHINE/SYSTEM/LocalSettings/Graphics/Gnome/GraphicCode:str=aqua
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/SYSTEM<d>LocalSettings<d>Graphics<d>Gnome<d>GraphicCode:list=/opt/aqua/sys/frameworks/RegSyncInstruct/sbin/gnome-update-wallpaper.sh {}
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/SYSTEM/LocalSettings/Graphics/Gnome/GraphicCode:list=/opt/aqua/sys/frameworks/RegSyncInstruct/sbin/gnome-update-wallpaper.sh {}
 ?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/VFSGC/Latency:dword=60
 ?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/VFSGC/TTL:dword=3600
 ?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/VFSMK/SizeMB:dword=1024
