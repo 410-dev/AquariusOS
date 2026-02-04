@@ -9,7 +9,7 @@ from nanodir.client import request as client_request
 # HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/*
 
 def main():
-    pass
+    return 0
 
 
 
