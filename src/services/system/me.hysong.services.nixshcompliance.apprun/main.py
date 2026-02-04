@@ -1,5 +1,6 @@
 import os
 import stat
+import subprocess
 import pyinotify
 from oscore import libreg as reg
 
@@ -87,6 +88,10 @@ def create_apprun_wrapper(source_dir, dirname):
 
         st = os.stat(destination)
         os.chmod(destination, st.st_mode | stat.S_IEXEC)
+
+        # Force run chmod +x to ensure it's executable
+        subprocess.call(['chmod', '+x', destination])
+
         print(f"Apprun wrapper created: {destination} pointing to {source_dir}")
 
     except OSError as e:
@@ -142,6 +147,8 @@ def initial_scan(watch_dirs):
                             create_symlink(full_path, item)
                             # Set executable
                             os.chmod(full_path, os.stat(full_path).st_mode | stat.S_IEXEC)
+                            # Force run chmod +x to ensure it's executable
+                            subprocess.call(['chmod', '+x', full_path])
 
 
         except OSError as e:
@@ -178,6 +185,8 @@ class ChangeHandler(pyinotify.ProcessEvent):
                 if first_line.startswith('#!') and 'python' in first_line:
                     create_symlink(filepath, filename)
                     os.chmod(filepath, os.stat(filepath).st_mode | stat.S_IEXEC)
+                    # Force run chmod +x to ensure it's executable
+                    subprocess.call(['chmod', '+x', filename])
 
 def main():
     # 1. Load configuration from Registry
