@@ -3,6 +3,8 @@ from oscore import libreg
 
 import datetime
 import os
+import readline
+
 
 # AVBL Keys for env vars
 # OBJSHELL_HISTORY_ENABLE (0/1) - Enable/Disable command history
@@ -24,6 +26,9 @@ import os
 #   {Exec:xxx}: Output of executing command xxx (Not stored in history unless "OBJSHELL_HISTORY_EVAL_EXEC" is set to 1)
 
 def parse_exec_variables(prompt: str, session: objectiveshell.ObjectiveShellSession, exit_code, elapsed) -> str:
+    if prompt is None:
+        return ""
+
     variables = {
         "ExitCode": exit_code,
         "ExecTime": elapsed,
@@ -36,7 +41,7 @@ def parse_exec_variables(prompt: str, session: objectiveshell.ObjectiveShellSess
         "ShellVersion": "1.0"
     }
     for key, value in variables.items():
-        prompt = prompt.replace(f"{{{key}}}", value)
+        prompt = prompt.replace(f"{{{key}}}", str(value))
 
     while "{Exec:" in prompt:
         start_idx = prompt.index("{Exec:")
@@ -72,6 +77,22 @@ def main():
     session = objectiveshell.ObjectiveShellSession(env)
     elapsed_time = 0.0
     exit_code = 0
+
+    history: list[str] = []
+
+    history_path = session.environment.get("OBJSHELL_HISTORY_FILE", "")
+    if history_path and os.path.isfile(history_path):
+        try:
+            # This loads the file content directly into the input() history buffer
+            readline.read_history_file(history_path)
+
+            # Keep your original list logic if you need the variable 'history' for other logic
+            with open(history_path, "r") as history_file:
+                history = history_file.read().splitlines()
+        except IOError:
+            pass
+
+
     while True:
         try:
 
@@ -79,9 +100,26 @@ def main():
             prompt = parse_exec_variables(prompt_template, session, exit_code, elapsed_time)
 
             raw_input = input(prompt)
+
+            history.append(raw_input)
+            readline.add_history(raw_input)
+            if session.environment.get("OBJSHELL_HISTORY_ENABLE", "0") == "1":
+                history_file_path = session.environment.get("OBJSHELL_HISTORY_FILE", "")
+                if history_file_path:
+                    with open(history_file_path, "a") as history_file:
+                        history_file.write(raw_input + "\n")
+
             parsed_line = session.parse_line(raw_input)
+
+            # Start timing execution
+            start_time = datetime.datetime.now()
             result = session.execute_line(parsed_line)
-            if result.returns is not None:
+            end_time = datetime.datetime.now()
+
+            elapsed_time = (end_time - start_time).total_seconds()
+            exit_code = result.exit_code
+
+            if result.returns is not None and session.environment.get("OBJSHELL_PRINT_RETURNS", "1"):
                 print(result.returns)
 
         except (EOFError, KeyboardInterrupt):
