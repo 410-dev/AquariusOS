@@ -15,7 +15,7 @@ if ! mountpoint -q /boot; then
 fi
 
 
-# Host requirement: Ubuntu 24.04 LTS ONLY
+# Host requirement: Ubuntu 26.04 LTS ONLY
 # User may bypass version checking by creating a file at /var/noinstfs/aqua/root.d/registry/SYSTEM/Installer/Flags/BypassHostOSCheck.bool.rv with content "1"
 BYPASS_CHECK="0"
 if [[ -f /var/noinstfs/aqua/root.d/registry/SYSTEM/Installer/Flags/BypassHostOSCheck.bool.rv ]]; then
