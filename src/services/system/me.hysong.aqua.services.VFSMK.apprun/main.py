@@ -12,12 +12,12 @@ def main():
     
     exec_py = "/opt/aqua/sys/sbin/mkvfs.py"
     mnt_pty = "/opt/aqua/vfs"
-    sz = reg.read("/SYSTEM/Services/me.hysong.aqua/VFSMK/SizeMB", 4096)
+    sz = reg.read("/SYSTEM/Services/me.hysong.aqua/VFSMK/SizeMB", 2048)
     try:
         sz = int(sz)
     except Exception as e:
-        log.error(f"Invalid size value in registry: {sz}, using default 4096MB")
-        sz = 4096
+        log.error(f"Invalid size value in registry: {sz}, using default 2048MB")
+        sz = 2048
 
     cmd = f"/usr/bin/python3 {exec_py} --path={mnt_pty} --size={sz}M --mkdir --template=SYS1 --permission=2777"
     
