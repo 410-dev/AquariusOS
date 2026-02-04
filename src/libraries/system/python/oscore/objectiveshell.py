@@ -281,7 +281,24 @@ class ObjectiveShellSession:
             # 5. Execute main with Error Handling
             try:
                 # Pass session_copy as first arg, then the rest of args
-                return module.main(session_copy, *args)
+                result =  module.main(session_copy, *args)
+
+                # If tuple:
+                if isinstance(result, tuple) and len(result) == 2:
+                    exit_code, returns = result
+                    return ExecResult(int(exit_code), returns)
+                # If string, assume exit code 0
+                elif isinstance(result, str):
+                    return ExecResult(0, result)
+                # If ExecResult, return directly
+                elif isinstance(result, ExecResult):
+                    return result
+                # If int, assume exit code with no return
+                elif isinstance(result, int):
+                    return ExecResult(result, None)
+                else:
+                    return ExecResult(0, result)
+
 
             except TypeError as e:
                 # Parameter mismatch handling
