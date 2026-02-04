@@ -1,5 +1,9 @@
 import os
+import subprocess
+import shlex
+import shutil
 import uuid
+import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple
 
 # ----------------------------
@@ -153,7 +157,10 @@ def read(
         root = expanded_map.get(explicit_hive)
         if not root:
             return default
-        base = os.path.join(root, rel)
+
+        # URL Encode patch
+        # base = os.path.join(root, rel)
+        base = get_encoded_path(root, rel)
 
         if os.path.isdir(base):
             # Single-hive directory listing
@@ -163,6 +170,10 @@ def read(
                 if os.path.isfile(fpath) and fpath.endswith(".rv"):
                     try:
                         name, type_ext, _rv = fname.rsplit(".", 2)
+
+                        # URL Decode patch
+                        name = decode_key(name)
+
                         listing[name] = type_ext
                     except ValueError:
                         pass
@@ -196,6 +207,10 @@ def read(
                 if os.path.isfile(fpath) and fpath.endswith(".rv"):
                     try:
                         name, type_ext, _rv = fname.rsplit(".", 2)
+
+                        # URL Decode patch
+                        name = decode_key(name)
+
                         # Respect priority: first hit wins
                         if name not in merged_listing:
                             merged_listing[name] = type_ext
@@ -213,6 +228,36 @@ def read(
             return _read_value_file(cand)
     return default
 
+
+
+def _exec_hook_secure(hook: str, new_value: str):
+    try:
+        parts = shlex.split(hook)
+        cmd_args = [part.replace("{}", new_value) for part in parts]
+        subprocess.run(cmd_args, check=True)
+    except Exception as e:
+        print(f"Warning: Failed to execute hook '{hook}': {e}")
+        pass  # Ignore hook execution errors
+
+def encode_key(key_part: str) -> str:
+    """
+    특수문자, 공백, 유니코드 등을 퍼센트 인코딩하여 파일시스템 호환성 및 보안 확보
+    예: "배경 화면" -> "%EB%B0%B0%EA%B2%BD%20%ED%99%94%EB%A9%B4"
+    """
+    # safe='' 로 설정하여 슬래시(/)를 제외한 모든 특수문자 인코딩
+    # 키 경로 자체에 슬래시가 포함된다면 split 후 각각 인코딩해야 함
+    return urllib.parse.quote(key_part, safe='')
+
+def decode_key(encoded_part: str) -> str:
+    return urllib.parse.unquote(encoded_part)
+
+def get_encoded_path(root: str, rel_path: str) -> str:
+    """
+    상대 경로(Software/MyConfig)를 받아 인코딩된 절대 경로를 반환
+    """
+    parts = rel_path.split('/')
+    encoded_parts = [encode_key(p) for p in parts]
+    return os.path.join(root, *encoded_parts)
 
 def write(
     as_user: str,
@@ -245,7 +290,11 @@ def write(
     if not root:
         raise RuntimeError(f"Hive '{target_hive}' has no valid root path.")
 
-    base_no_ext = os.path.join(root, rel)
+
+    # URL Encode patch
+    # base_no_ext = os.path.join(root, rel)
+    base_no_ext = get_encoded_path(root, rel)
+
     dir_path = os.path.dirname(base_no_ext)
     _ensure_dir(dir_path)
 
@@ -300,8 +349,28 @@ def write(
     else:
         raise ValueError("Unsupported value type for registry.")
 
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(data)
+    # This code is unsafe when concurrent writes are possible.
+    # Use code below.
+    # with open(file_path, "w", encoding="utf-8") as f:
+    #     f.write(data)
+
+    temp_file_path = file_path + f".tmp.{uuid.uuid4().hex}"
+    try:
+        with open(temp_file_path, "w", encoding="utf-8") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+
+        if os.path.exists(file_path):
+            shutil.copymode(file_path, temp_file_path)
+
+        os.replace(temp_file_path, file_path)
+
+    except Exception:
+        # Cleanup temp file if something fails
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+        raise
 
     if target_hive == "HKEY_CURRENT_USER":
         try:
@@ -311,8 +380,10 @@ def write(
 
     # Check update hooks
     #
-    keyPath_explicit_path = rel.replace("/", "<d>")
-    keyPath_implicit_path = registry_path.lstrip("/").replace("/", "<d>")
+    # keyPath_explicit_path = rel.replace("/", "<d>")
+    # keyPath_implicit_path = registry_path.lstrip("/").replace("/", "<d>")
+    keyPath_explicit_path = rel
+    keyPath_implicit_path = registry_path.lstrip("/")
     hook_path = "HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/"
     hooks_explicit_path = read(f"{hook_path}/{keyPath_explicit_path}", default=[])
     hooks_implicit_path = read(f"{hook_path}/{keyPath_implicit_path}", default=[])
@@ -328,17 +399,21 @@ def write(
             # Each exec_line is a path to an executable hook
             # Split by shell escape
             hook = exec_line.strip()
-            hook = hook.replace("{}", f'"{data}"')
-            command_bin = hook.split()[0]
-            if os.path.isfile(command_bin) and os.access(command_bin, os.X_OK):
-                os.system(hook)
+            _exec_hook_secure(hook, data)
+            # Alternative insecure way (vulnerable to injection):
+            # hook = hook.replace("{}", f'"{data}"')
+            # command_bin = hook.split()[0]
+            # if os.path.isfile(command_bin) and os.access(command_bin, os.X_OK):
+            #     os.system(hook)
 
     elif isinstance(hooks, str):
         exec_line = hooks.strip()
-        exec_line = exec_line.replace("{}", f'"{data}"')
-        command_bin = exec_line.split()[0]
-        if os.path.isfile(command_bin) and os.access(command_bin, os.X_OK):
-            os.system(exec_line)
+        _exec_hook_secure(exec_line, data)
+        # Alternative insecure way (vulnerable to injection):
+        # exec_line = exec_line.replace("{}", f'"{data}"')
+        # command_bin = exec_line.split()[0]
+        # if os.path.isfile(command_bin) and os.access(command_bin, os.X_OK):
+        #     os.system(exec_line)
 
     else:
         pass  # No hooks to run
