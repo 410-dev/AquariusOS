@@ -3,6 +3,7 @@ import importlib
 import importlib.util
 from importlib.machinery import SourceFileLoader
 import sys
+import inspect
 import os
 import types
 import re
@@ -68,6 +69,11 @@ class _INTERNAL_CMDS:
             print(f"No such file or directory: {directory}")
             return ExecResult(1, None)
 
+    @staticmethod
+    def echo(session, *args) -> ExecResult:
+        print(" ".join([str(a) for a in args]))
+        return ExecResult(0, " ".join([str(a) for a in args]))
+
 class ObjectiveShellSession:
 
     def __init__(self, environment: dict[str, str] = None):
@@ -85,7 +91,7 @@ class ObjectiveShellSession:
             "cd": _INTERNAL_CMDS.cd,
             "pwd": lambda s, *args: ExecResult(0, s.pwd),
             # Simple echo for testing
-            "echo": lambda s, *args: ExecResult(0, " ".join([str(a) for a in args]))
+            "echo": _INTERNAL_CMDS.echo
         }
 
     def copy(self) -> 'ObjectiveShellSession':
@@ -258,62 +264,91 @@ class ObjectiveShellSession:
 
         try:
             # 2. Use SourceFileLoader directly.
-            # This bypasses 'spec' heuristics and forces loading the file as source.
             loader = SourceFileLoader(module_name, filepath)
             module = types.ModuleType(loader.name)
-
-            # Register module to sys.modules to support reloading/imports
             sys.modules[module_name] = module
 
-            # Initialize the module (executes the code)
+            # Initialize the module
             try:
                 loader.exec_module(module)
             except Exception as e:
                 return ExecResult(1, f"Failed to load module code: {e}")
 
-            # 3. Look for main
-            if not hasattr(module, "main"):
-                return ExecResult(1, f"Error: '{filepath}' does not have a main() function.")
-
-            # 4. Prepare Session Copy
+            # 3. Prepare Session Copy
             session_copy = self.copy()
 
-            # 5. Execute main with Error Handling
-            try:
-                # Pass session_copy as first arg, then the rest of args
-                result =  module.main(session_copy, *args)
-
-                # If tuple:
-                if isinstance(result, tuple) and len(result) == 2:
-                    exit_code, returns = result
-                    return ExecResult(int(exit_code), returns)
-                # If string, assume exit code 0
-                elif isinstance(result, str):
-                    return ExecResult(0, result)
-                # If ExecResult, return directly
-                elif isinstance(result, ExecResult):
-                    return result
-                # If int, assume exit code with no return
-                elif isinstance(result, int):
-                    return ExecResult(result, None)
+            # Helper to normalize return values (handles tuple, str, int, ExecResult)
+            def process_result(res):
+                if isinstance(res, tuple) and len(res) == 2:
+                    return ExecResult(int(res[0]), res[1])
+                elif isinstance(res, str):
+                    return ExecResult(0, res)
+                elif isinstance(res, ExecResult):
+                    return res
+                elif isinstance(res, int):
+                    return ExecResult(res, None)
                 else:
-                    return ExecResult(0, result)
+                    return ExecResult(0, res)
 
+            # 4. Execution Logic with Fallback
+            # Check availability of functions
+            has_main = hasattr(module, "main")
+            has_udef = hasattr(module, "udef_main")
 
-            except TypeError as e:
-                # Parameter mismatch handling
-                if "positional argument" in str(e) or "argument" in str(e):
-                    if hasattr(module, "help"):
-                        try:
-                            help_msg = module.help(session_copy)
-                            print(f"Command usage error. Help:\n{help_msg}")
-                            return ExecResult(1, None)
-                        except Exception as help_err:
-                            print(f"Error executing help(): {help_err}")
+            if not has_main and not has_udef:
+                return ExecResult(1, f"Error: '{filepath}' does not have a main() or udef_main() function.")
+
+            # Attempt to run main()
+            if has_main:
+                try:
+                    result = module.main(session_copy, *args)
+                    return process_result(result)
+                except TypeError as e:
+                    # Check if this is an argument mismatch and if we have a fallback
+                    is_arg_error = "positional argument" in str(e) or "argument" in str(e)
+                    if is_arg_error and has_udef:
+                        # Proceed to fallback logic below
+                        pass
                     else:
-                        print(f"Error executing {module_name}: {e}")
-                else:
-                    raise e
+                        # Not an arg error, or no fallback available -> handle normally
+                        # (This includes handling 'help' if applicable)
+                        if "positional argument" in str(e) and hasattr(module, "help"):
+                            try:
+                                return ExecResult(1, f"Command usage error. Help:\n{module.help(session_copy)}")
+                            except Exception:
+                                pass
+                        return ExecResult(1, f"Error executing {module_name}: {e}")
+
+            # Fallback: udef_main Logic
+            # We reach here if main() didn't exist, or if main() failed with TypeError and we have udef
+            if has_udef:
+                try:
+                    # Inspect signature to calculate arguments
+                    sig = inspect.signature(module.udef_main)
+                    # Count params excluding 'session' (assuming session is always first)
+                    params_count = len(sig.parameters) - 1
+
+                    final_args = list(args)
+
+                    # If inputs exceed accepted params, collapse overflow into the last argument
+                    if len(args) > params_count and params_count > 0:
+                        # The index where we stop standard assignment and start the list
+                        split_index = params_count - 1
+
+                        # Take standard args
+                        standard_args = args[:split_index]
+                        # Take the rest as a list
+                        overflow_list = list(args[split_index:])
+
+                        # Combine
+                        final_args = list(standard_args)
+                        final_args.append(overflow_list)
+
+                    result = module.udef_main(session_copy, *final_args)
+                    return process_result(result)
+
+                except Exception as e:
+                    return ExecResult(1, f"Error executing udef_main in {module_name}: {e}")
 
         except FileNotFoundError:
             return ExecResult(1, f"File not found during load: {filepath}")
@@ -350,6 +385,5 @@ class ObjectiveShellSession:
         if found_path:
             return self._load_and_run_external(found_path, args)
 
-        print(f"Command not found: {cmd_name}")
-        return ExecResult(127, None)
+        return ExecResult(-32768, f"Command not found: {cmd_name}")
 
