@@ -3,6 +3,7 @@ from oscore import libreg
 
 import datetime
 import os
+import subprocess
 import readline
 
 
@@ -63,6 +64,7 @@ def main():
     env_list = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Environment", {})
     paths = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Paths", "/opt/aqua/share/ObjectiveShell/Instructions/foundation")
     dev_on = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Developer", False)
+    allow_fallback_to_bash = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/AllowFallbackToBash", False)
 
     env: dict[str, str] = {}
     for key, value in env_list.items():
@@ -117,10 +119,38 @@ def main():
             end_time = datetime.datetime.now()
 
             elapsed_time = (end_time - start_time).total_seconds()
-            exit_code = result.exit_code
+            exit_code: int = result.exit_code
+
+            if exit_code == -32768:
+                if not allow_fallback_to_bash:
+                    print(f"Command not found.")
+                    continue
+
+                # Fallback to bash
+                try:
+                    bash_process = subprocess.Popen(
+                        ["bash", "-c", raw_input],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+                    stdout, stderr = bash_process.communicate()
+
+                    if stdout:
+                        print(stdout, end="")
+                    if stderr:
+                        print(stderr, end="")
+
+                    exit_code = bash_process.returncode
+                except Exception as e:
+                    print(f"Error executing command in bash: {e}")
+                    exit_code = -1
 
             if result.returns is not None and session.environment.get("OBJSHELL_PRINT_RETURNS", "1"):
-                print(result.returns)
+
+                # Only if command is not echo.
+                if parsed_line[0] != "echo":
+                    print(result.returns)
 
         except (EOFError, KeyboardInterrupt):
             print("\nExiting ObjectiveShell.")
