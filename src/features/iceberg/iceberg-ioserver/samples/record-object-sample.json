@@ -1,0 +1,13 @@
+{
+    "Database": "",
+    "TableName": "",
+    "Scheme": {
+        "id": {
+            "type": "int",
+            "primary": true
+        },
+        "name": {
+            "type": "text"
+        }
+    }
+}

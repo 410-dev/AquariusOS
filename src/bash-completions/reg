@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+_reg_completion() {
+    local cur prev ids
+    COMPREPLY=()
+
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # List available users in the system
+    local users="root $(ls /home 2>/dev/null)"
+
+
+    # First argument: subcommand
+    if [[ $COMP_CWORD -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "${users}" -- "$cur") )
+        return 0
+    fi
+
+    local commands="read write"
+
+    # Second argument: subcommand
+    if [[ $COMP_CWORD -eq 2 ]]; then
+        COMPREPLY=( $(compgen -W "${commands}" -- "$cur") )
+        return 0
+    fi
+
+    local hives="HKEY_LOCAL_MACHINE HKEY_CURRENT_USER HKEY_VOLATILE_MEMORY"
+    if [[ $COMP_CWORD -ge 3 ]]; then
+        COMPREPLY=( $(compgen -W "${hives}" -- "$cur") )
+        return 0
+    fi
+
+    # If subcommand is "write", then show available write types
+    local writetypes="dword qword bool str list hex float double"
+    if [[ "${prev}" == "write" && $COMP_CWORD -eq 4 ]]; then
+        COMPREPLY=( $(compgen -W "${writetypes}" -- "$cur") )
+        return 0
+    fi
+
+    # If subcommand is "write" then suggest a value
+    if [[ "${prev}" == "write" && $COMP_CWORD -eq 5 ]]; then
+        COMPREPLY=( $(compgen -W "<value>" -- "$cur") )
+        return 0
+    fi
+}
+
+# Bind completion to both valid command names
+complete -F _reg_completion reg reg.sh

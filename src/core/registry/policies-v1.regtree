@@ -1,0 +1,4 @@
+?HKEY_LOCAL_MACHINE/SYSTEM/Policies/Commands/WhitelistedCommandsEnabled:bool=0
+?HKEY_LOCAL_MACHINE/SYSTEM/Policies/Commands/WhitelistedCommands:list=
+?HKEY_LOCAL_MACHINE/SYSTEM/Policies/Features/Blacklisted:list=motd,domain-controller,me.hysong.GrubBtrfsSupport,me.hysong.SnapshotSupport,iceberg
+?HKEY_LOCAL_MACHINE/SYSTEM/Policies/PackageControl/

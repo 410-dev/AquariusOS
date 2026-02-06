@@ -1,0 +1,83 @@
+{
+    "": "",
+    "MaintenanceScript": {
+        "PreInst": [
+            ["echo", "Starting pre-installation tasks..."]
+        ],
+        "PostInst": [
+            ["echo", "Installation completed successfully."]
+        ]
+    },
+    "PolicyProcedures": [
+        {
+            "Type": "package-add",
+            "Packages": [
+                {
+                    "Id": "openjdk-17-jdk",
+                    "Version": "latest",
+                    "Hold": true,
+                    "ModifyLock": true
+                }
+            ]
+        },
+        {
+            "Type": "package-blacklist",
+            "Packages": [
+                "python3-pip"
+            ]
+        },
+        {
+            "Type": "registry-update",
+            "Values": {
+                "?HKEY_LOCAL_MACHINE/SOFTWARE/": {"type": "dword", "value": 1}
+            }
+        },
+        {
+            "Type": "file-operation",
+            "Actions": [
+                {
+                    "Action": "copy",
+                    "Source": "C:/AquaOS/System32/drivers/etc/hosts",
+                    "Destination": "C:/AquaOS/System32/drivers/etc/hosts.bak"
+                },
+                {
+                    "Action": "delete",
+                    "Target": "C:/AquaOS/Temp/unnecessary_file.tmp"
+                },
+                {
+                    "Action": "move",
+                    "Source": "C:/AquaOS/Downloads/old_config.cfg",
+                    "Destination": "C:/AquaOS/Config/old_config.cfg"
+                },
+                {
+                    "Action": "create",
+                    "Target": "C:/AquaOS/Logs/new_log.log",
+                    "Content": "Log initialized on $(date)"
+                },
+                {
+                    "Action": "replace",
+                    "Target": "C:/AquaOS/Config/app_settings.cfg",
+                    "Search": "enable_feature_x=false",
+                    "Replace": "enable_feature_x=true",
+                    "Limit": -1,
+                    "Reverse": false
+                },
+                {
+                    "Action": "chmod",
+                    "Target": "C:/AquaOS/Scripts/run_me.bat",
+                    "Permissions": "755"
+                },
+                {
+                    "Action": "chown",
+                    "Target": "C:/AquaOS/Data/data_file.dat",
+                    "Owner": "AquaUser"
+                },
+                {
+                    "Action": "symlink",
+                    "Source": "C:/AquaOS/Tools/tool.exe",
+                    "Link": "C:/AquaOS/Desktop/tool_link.lnk"
+                }
+            ]
+        }
+    ]
+}

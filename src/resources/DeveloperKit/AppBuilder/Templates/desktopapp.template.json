@@ -1,0 +1,76 @@
+{
+    "TemplateName": "Desktop Application Template",
+    "TemplateVersion": 1,
+    "InputRequirements": {
+        "libs-vscode": {
+            "display": "VSCode development settings",
+            "value": "{\"python.analysis.extraPaths\": [\"/usr/share/lib/python/me.hysong/apprunutils\", \"/opt/aqua/lib/python/\", \"/opt/aqua/lib/python/aqua\"]}",
+            "type": "str"
+        },
+        "DesktopLink/Categories": {
+            "display": "Application Categories",
+            "value": "Utility",
+            "type": "str"
+        },
+        "DesktopLink/Comment": {
+            "display": "Application Comment",
+            "value": "AquariusOS Desktop Application",
+            "type": "str"
+        },
+        "DesktopLink/Name": {
+            "display": "Application Name",
+            "value": "My App",
+            "type": "str"
+        },
+        "DesktopLink/Terminal": {
+            "display": "Run in Terminal",
+            "value": "false",
+            "type": "str"
+        },
+        "DesktopLink/Version": {
+            "display": "Application Version",
+            "value": "1.0.0",
+            "type": "str"
+        },
+        "id": {
+            "display": "Application ID",
+            "value": "com.example.myapp",
+            "type": "str"
+        },
+        "libs": {
+            "display": "AppRun loadable Libraries",
+            "value": "com.aqua.common:com.aqua.sys:me.hysong.apprunutils",
+            "type": "str"
+        },
+        "requirements": {
+            "display": "Application Requirements (Use ',' to separate multiple)",
+            "value": "",
+            "type": "multiline"
+        },
+        "main_content": {
+            "value": "import sys\n\nfrom AppContext import AppContext\n\ncontext: AppContext = AppContext()\n\ndef main(args: list[str]) -> int:\n    print('Hello, AquariusOS Desktop Application!')\n    return 0\n\nif __name__ == '__main__':\n    sys.exit(main(sys.argv[1:]))\n",
+            "type": "str"
+        }
+    },
+    "Structure": {
+        ".vscode": {
+            "settings.json": "$libs-vscode$"
+        },
+        "$DesktopLink/Name$.apprun": {
+            "AppRunMeta": {
+                "DesktopLink": {
+                    "Categories": "$DesktopLink/Categories$",
+                    "Comment": "$DesktopLink/Comment$",
+                    "Name": "$DesktopLink/Name$",
+                    "Terminal": "$DesktopLink/Terminal$",
+                    "Type": "Application",
+                    "Version": "$DesktopLink/Version$"
+                },
+                "id": "$id$",
+                "libs": "$libs$"
+            },
+            "main.py": "$main_content$",
+            "requirements.txt": "$requirements$"
+        }
+    }
+}

@@ -1,0 +1,107 @@
+{
+    "StructType": "BuildStructure",
+    "StructVersion": 1,
+    "Name": "AquariusOS Default Build Structure",
+    "DisplayName": "AquariusOS",
+    "Version": "1.0.0",
+    "Source": "src",
+    "Temporary": "tmp",
+    "Output": "build",
+    "TargetDistro": "Ubuntu",
+    "PreprocessorConfig": {
+        "Variables": {
+            "PrettyName": "AquariusOS",
+            "CODENAME": "Genesis",
+            "NAME": "VAL:DisplayName",
+            "BUILD_DATE": "RUN:date +%y%m.%d.%H%M%S",
+            "VERSION": "RUN:date +%y%m.%d.%H%M",
+            "UPSTREAM": "VAL:TargetDistro",
+            "RELEASE_TYPE": "Experimental"
+        },
+        "PathReplacements": {
+            "aisp-": "aqua-",
+            "com.acadia.aisp.": "me.hysong.aqua.",
+            "com.acadia.": "me.hysong.",
+            "aisp": "aqua",
+            "AISP": "AquariusOS"
+        },
+        "BlacklistedFiles": [
+            ".DS_Store",
+            "Thumbs.db"
+        ],
+        "SetExecutables": [
+            "*.sh",
+            "*.py",
+            "preinst",
+            "postinst",
+            "prerm",
+            "postrm"
+        ],
+        "SkipBinaryFiles": true,
+        "SkippingExtensions": ["jar", "class", "dll", "exe", "png", "jpg", "jpeg", "gif", "bmp", "tiff", "ico", "svg", "mp4", "mp3", "wav", "flac", "ogg", "zip", "tar", "gz", "bz2", "7z", "xz", "pdf", "docx", "xlsx", "pptx"]
+    },
+    "Patches": {
+        "rocky": false
+    },
+    "MaintainerScriptBlacklist": [
+
+    ],
+    "IgnoreSubmoduleBuildError": {
+        "FileNotFoundError": [
+            "libraries/extension/java/libcodablejdbc/lib/libcodablejson"
+        ]
+    },
+    "SubmoduleBuildPriority": [
+        "libraries/extension/java/libcodablejson",
+        "libraries/extension/java/libcodablejdbc",
+        "libraries/system",
+        "libraries/extension"
+    ],
+    "Mapping": {
+        "rootfs": "/",
+        "branding": "/",
+        "package-meta/ubuntu": "/DEBIAN",
+        "applications/system": "/opt/aqua/sys/applications",
+        "applications/user": "/opt/aqua/applications",
+        "core": "/opt/aqua/sys",
+        "features": "/opt/aqua/features",
+        "libraries/system": "/opt/aqua/sys/lib",
+        "libraries/extension": "/opt/aqua/lib",
+        "services/system": "/opt/aqua/sys/services",
+        "services/user": "/opt/aqua/services",
+        "resources": "/opt/aqua/share",
+        "commands/system": "/opt/aqua/sys/sbin",
+        "commands/user": "/opt/aqua/sbin",
+        "gnome-context-menu-extensions": "/usr/share/nautilus-python/extensions",
+        "preboot": "/opt/aqua/boot/preboot",
+        "bash-completions": "/etc/bash_completion.d",
+        "apprun-dictionaries": "/usr/share/dictionaries/apprun-python",
+        "frameworks": "/opt/aqua/sys/frameworks",
+        "aqua-root": "/opt/aqua"
+    },
+    "Packaging": {
+        "Variables": {
+            "Source": "VAL:Source",
+            "Temporary": "VAL:Temporary",
+            "Output": "VAL:Output",
+            "Name": "VAL:DisplayName",
+            "Version": "VAL:VERSION",
+            "Codename": "VAL:CODENAME",
+            "ReleaseType": "VAL:RELEASE_TYPE",
+            "Runner": "RUN:whoami"
+        },
+        "CommandLines": [
+            ["sudo", "chown", "-R", "root:root", "{{{Temporary}}}/step_1"],
+            ["sudo", "chmod", "-R", "755", "{{{Temporary}}}/step_1"],
+            ["sudo", "dpkg-deb", "--build", "{{{Temporary}}}/step_1"],
+            ["sudo", "chown", "{{{Runner}}}:{{{Runner}}}", "{{{Temporary}}}/step_1.deb"],
+            ["sudo", "chmod", "644", "{{{Temporary}}}/step_1.deb"],
+            ["sudo", "chown", "-R", "{{{Runner}}}:{{{Runner}}}", "{{{Temporary}}}/step_1"],
+            ["mv", "{{{Temporary}}}/step_1.deb", "{{{Output}}}/osaqua.deb"],
+            ["rm", "-rf", "{{{Temporary}}}"]
+        ],
+        "OutputPatterns": [
+            "*.deb"
+        ]
+    }
+}

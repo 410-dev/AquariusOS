@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+_features_completion() {
+    local cur prev ids
+    COMPREPLY=()
+
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    local commands="enable disable list"
+
+    # First argument: subcommand
+    if [[ $COMP_CWORD -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "${commands}" -- "$cur") )
+        return 0
+    fi
+
+    # Dynamic <id> completion for commands requiring ID
+    case "${COMP_WORDS[1]}" in
+        enable|disable)
+            ids="$("${COMP_WORDS[0]}" list 2>/dev/null)"
+            COMPREPLY=( $(compgen -W "${ids}" -- "$cur") )
+            return 0
+            ;;
+    esac
+
+    # Last is --experimental flag if applicable
+    if [[ $COMP_CWORD -eq 3 && ( "${COMP_WORDS[1]}" == "enable" || "${COMP_WORDS[1]}" == "disable" ) ]]; then
+        COMPREPLY=( $(compgen -W "--experimental" -- "$cur") )
+        return 0
+    fi
+}
+
+# Bind completion to both valid command names
+complete -F _features_completion feature feature.sh

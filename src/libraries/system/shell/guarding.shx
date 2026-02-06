@@ -1,0 +1,53 @@
+#!/bin/bash
+
+function mark() {
+    echo "$2" > "/opt/aqua/var/$1"
+}
+
+function unmark() {
+    rm -f "/opt/aqua/var/$1"
+}
+
+function is_marked() {
+    if [[ -f "/opt/aqua/var/$1" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function mark_equals() {
+    if is_marked "$1"; then
+        local content
+        content=$(<"/opt/aqua/var/$1")
+        if [[ "$content" == "$2" ]]; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
+function quit_if_marked() {
+    if is_marked "$1"; then
+        exit 0
+    fi
+}
+
+function quit_if_mark_equals() {
+    if is_marked "$1"; then
+        local content
+        content=$(<"/opt/aqua/var/$1")
+        if [[ "$content" == "$2" ]]; then
+            exit 0
+        fi
+    fi
+}
+
+export -f mark
+export -f unmark
+export -f is_marked
+export -f quit_if_marked
+export -f quit_if_mark_equals

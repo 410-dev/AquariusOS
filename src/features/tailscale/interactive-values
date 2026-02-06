@@ -1,0 +1,3 @@
+login:bool:"Login in this session?"
+enable_system_tray:bool:"Enable system tray?"
+set_current_user_as_operator:bool:"Set Tailscale's operator as current user?"

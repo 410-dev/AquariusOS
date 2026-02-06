@@ -1,0 +1,4 @@
+{
+    "com.aqua.common": "/opt/aqua/lib/python",
+    "com.aqua.sys": "/opt/aqua/sys/lib/python"
+}

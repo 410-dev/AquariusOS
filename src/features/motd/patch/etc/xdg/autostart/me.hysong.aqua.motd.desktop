@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=ZenityMOTD
+GenericName=Message of the Day Display
+Comment=Displays the Message of the Day on login.
+Exec=python3 /opt/aqua/sbin/motd.py
+Terminal=false
+Type=Application
+X-GNOME-Autostart-enabled=true
