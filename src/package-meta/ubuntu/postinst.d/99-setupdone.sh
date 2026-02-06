@@ -1,2 +1,2 @@
-mark "AquariusOSSetupDone.Global.var" "$current_version"
-echo "Setup marked as done for version $current_version."
+mark "AquariusOSSetupDone.Global.var" "{{{BUILD_DATE}}}"
+echo "Setup marked as done for version {{{BUILD_DATE}}}."
