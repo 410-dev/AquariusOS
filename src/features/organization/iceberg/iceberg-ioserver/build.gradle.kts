@@ -19,8 +19,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
 
     // Proprietary libraries
-    implementationFirstAvailable("../../../libraries/extension/java/libcodablejson/libcodablejson.jar", "../../../libraries/extension/java/libcodablejson.jar")
-    implementationFirstAvailable("../../../libraries/extension/java/libcodablejdbc/libcodablejdbc.jar", "../../../libraries/extension/java/libcodablejdbc.jar")
+    implementationFirstAvailable("../../../../libraries/extension/java/libcodablejson/libcodablejson.jar", "../../../../libraries/extension/java/libcodablejson.jar")
+    implementationFirstAvailable("../../../../libraries/extension/java/libcodablejdbc/libcodablejdbc.jar", "../../../../libraries/extension/java/libcodablejdbc.jar")
 
     // JSON + Database
     implementation("com.google.code.gson:gson:2.12.1")
