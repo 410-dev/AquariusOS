@@ -363,27 +363,48 @@ class ObjectiveShellSession:
         if not line:
             return ExecResult(0, None)
 
-        cmd_name = str(line[0])  # Command name is the first token
-        args = line[1:]
+        cmd_name = str(line[0])
 
         # 1. Internal Commands Check
+        # Internal commands still only trigger on the first token
         if cmd_name in self.internal_cmds:
-            return self.internal_cmds[cmd_name](self, *args)
+            return self.internal_cmds[cmd_name](self, *line[1:])
 
         # 2. External Command Path Resolution
         search_paths = self._resolve_paths()
-        target_file = f"{cmd_name}.py"
         found_path = None
+        tokens_consumed = 1
 
         for path in search_paths:
-            # Clean path and join
-            possible_path = os.path.join(path, target_file)
-            if os.path.isfile(possible_path):
-                found_path = possible_path
+            current_dir = path
+            
+            for i, token in enumerate(line):
+                token_str = str(token)
+                
+                # First, see if the current token resolves to a Python file
+                possible_file = os.path.join(current_dir, f"{token_str}.py")
+                if os.path.isfile(possible_file):
+                    found_path = possible_file
+                    tokens_consumed = i + 1
+                    break
+                
+                # If not a file, check if it is a directory so we can look inside it
+                possible_dir = os.path.join(current_dir, token_str)
+                if os.path.isdir(possible_dir):
+                    current_dir = possible_dir
+                else:
+                    # The path is broken; stop checking tokens for this specific search_path
+                    break
+            
+            # Stop checking other search_paths if we already found a matching file
+            if found_path:
                 break
 
         if found_path:
+            # Pass only the remaining tokens as arguments
+            args = line[tokens_consumed:]
             return self._load_and_run_external(found_path, args)
 
-        return ExecResult(-32768, f"Command not found: {cmd_name}")
-
+        # Update the error message to reflect the full attempted command
+        failed_cmd = " ".join([str(t) for t in line])
+        return ExecResult(-32768, f"Command not found: {failed_cmd}")
