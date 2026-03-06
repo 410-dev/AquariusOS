@@ -38,9 +38,10 @@
     // 소스 파일 안의 {{VARIABLE}} 을 변수값으로 치환
     "Substitutions": {
         "Delimiter": ["{{", "}}"],
+        "ApplyToAllNonBinary": true,
         "Apply": [
             "**/*.sh", "**/*.py",
-            "**/*.json", "**/*.conf",
+            "**/*.json", "**/*.conf"
         ],
         "Skip": [
             "**/*.jar", "**/*.class",

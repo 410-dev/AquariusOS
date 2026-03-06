@@ -318,18 +318,23 @@ def run_preprocessor(cswd: str, config: dict, verbose: bool):
 
     # [2/4] 소스코드 변수 치환
     log_step(2, 4, "소스코드 변수 치환")
+    apply_to_all = substitutions.get("ApplyToAllNonBinary", False)
     for root, dirs, files in os.walk(cswd):
         for file in files:
             fp = os.path.join(root, file)
 
-            # 스킵 여부 판단
+            # Skip 패턴은 항상 적용
             if any(fnmatch.fnmatch(file, p) for p in skip_patterns):
                 log_verbose(f"스킵 (패턴): {fp}", verbose=verbose, indent=4)
                 continue
+
+            # 바이너리는 항상 스킵
             if is_binary_file(fp):
                 log_verbose(f"스킵 (바이너리): {fp}", verbose=verbose, indent=4)
                 continue
-            if not any(fnmatch.fnmatch(file, p) for p in apply_patterns):
+
+            # ApplyToAllNonBinary 가 False 면 Apply 패턴 체크
+            if not apply_to_all and not any(fnmatch.fnmatch(file, p) for p in apply_patterns):
                 log_verbose(f"스킵 (Apply 미해당): {fp}", verbose=verbose, indent=4)
                 continue
 
