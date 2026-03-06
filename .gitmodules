@@ -1,9 +1,9 @@
 [submodule "libraries/extension/java/libcodablejson"]
 	path = libraries/extension/java/libcodablejson
-	url = https://github.com/410-dev/libcodablejson.git
+	url = https://github.com/410-dev/libcodablejson
 [submodule "libraries/extension/java/libcodablejdbc"]
 	path = libraries/extension/java/libcodablejdbc
-	url = https://github.com/410-dev/libcodablejdbc.git
+	url = https://github.com/410-dev/libcodablejdbc
 [submodule "frameworks/AppRun"]
 	path = frameworks/AppRun
 	url = https://github.com/410-dev/AppRun
