@@ -1,5 +1,5 @@
 Package: osaqua
-Version: {{{VERSION}}}
+Version: {{VERSION}}
 Section: AquariusOS
 Priority: optional
 Architecture: all

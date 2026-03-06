@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#graphic_code="{{{CODENAME}}}"
+#graphic_code="{{CODENAME}}"
 graphic_code="aqua-simple"
 if mark_equals "AquariusOSSetupDone.GraphicCode.var" "$graphic_code" ; then
     echo "Marked as setup done for graphic code $graphic_code. Skipping..."
