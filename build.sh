@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python3 tools/build.py "$1"
+python3 .build/tools/build.py "$@"

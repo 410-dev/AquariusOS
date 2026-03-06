@@ -99,7 +99,7 @@ def deep_merge(base: dict, override: dict, path: str = "") -> dict:
     두 딕셔너리를 딥 머지합니다.
     허용된 키(Mapping, Output.Filename) 외 충돌 시 빌드 실패.
     """
-    ALLOWED_OVERRIDE_KEYS = {"Mapping", "Output"}
+    ALLOWED_OVERRIDE_KEYS = {"Mapping", "Output", "Variables", "Output"}
 
     result = dict(base)
     for key, value in override.items():
@@ -288,6 +288,7 @@ def set_executable(filepath: str, patterns: list[str], verbose: bool):
 # ─────────────────────────────────────────────
 # 전처리기
 # ─────────────────────────────────────────────
+
 
 def run_preprocessor(cswd: str, config: dict, verbose: bool):
     preprocessor = config.get("Preprocessor", {})
@@ -586,6 +587,22 @@ def compose_maintainer_script(scope: str, distro: str, pswd: str, output: str, b
 # 빌드 메인
 # ─────────────────────────────────────────────
 
+def make_ignore_func(exclude_list: list[str]):
+    """점(.)으로 시작하는 파일/디렉토리와 exclude_list 를 모두 무시합니다."""
+    def ignore_func(dir_path, contents):
+        ignored = set()
+        for item in contents:
+            # . 으로 시작하는 모든 항목 제외
+            if item.startswith("."):
+                ignored.add(item)
+                continue
+            # SourceExclude 목록 제외 (최상위에서만 적용)
+            if os.path.abspath(dir_path) == os.path.abspath("."):
+                if item in exclude_list:
+                    ignored.add(item)
+        return ignored
+    return ignore_func
+
 TOTAL_STEPS = 7
 
 def build(config: dict, verbose: bool, dry_run: bool):
@@ -593,7 +610,8 @@ def build(config: dict, verbose: bool, dry_run: bool):
     version = config.get("_resolved_vars", {}).get("VERSION", "?")
     edition = config.get("Edition", "unknown")
     tmp     = config.get("Temporary", "tmp")
-    out     = config.get("Output", "build")
+    # out     = config.get("Output", {})         # ← dict
+    out_dir = config.get("OutputDir", "build") # ← 실제 출력 디렉토리 경로
     source  = config.get("Source", "src")
 
     print(f"\n{C.BOLD}{C.WHITE}{'─' * 50}{C.RESET}")
@@ -610,16 +628,24 @@ def build(config: dict, verbose: bool, dry_run: bool):
 
     # ── Step 1: 준비
     log_step(1, TOTAL_STEPS, "빌드 환경 준비")
-    for d in [out, tmp]:
+    for d in [out_dir, tmp]:
         if os.path.isdir(d):
             log_info(f"기존 디렉토리 정리: {d}", indent=2)
             shutil.rmtree(d)
-    os.makedirs(out, exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)
     os.makedirs(tmp, exist_ok=True)
 
     cswd = os.path.join(tmp, "step_0")
+
+    source_exclude = config.get("SourceExclude", [])
+
     log_info(f"소스 복사: {source} → {cswd}", indent=2)
-    shutil.copytree(source, cswd, dirs_exist_ok=True)
+    shutil.copytree(
+        source,
+        cswd,
+        ignore=make_ignore_func(source_exclude),
+        dirs_exist_ok=True
+    )
     log_ok("준비 완료", indent=2)
 
     # ── Step 2: 전처리기
@@ -712,24 +738,24 @@ def build(config: dict, verbose: bool, dry_run: bool):
             for file in files:
                 if fnmatch.fnmatch(file, pattern):
                     src_path  = os.path.join(root, file)
-                    dest_path = os.path.join(out, file)
+                    dest_path = os.path.join(out_dir, file)
                     os.rename(src_path, dest_path)
                     log_ok(f"출력 파일 수집: {dest_path}", indent=2)
 
     print(f"\n{C.BOLD}{C.GREEN}{'─' * 50}{C.RESET}")
     print(f"{C.BOLD}{C.GREEN}  빌드 성공!{C.RESET}")
-    print(f"{C.DIM}  출력: {out}/{config['Output'].get('Filename', 'output')}.deb{C.RESET}")
+    print(f"{C.DIM}  출력: {out_dir}/{config['Output'].get('Filename', 'output')}.deb{C.RESET}")
     print(f"{C.BOLD}{C.GREEN}{'─' * 50}{C.RESET}\n")
 
 
 def _validate_only(config: dict, verbose: bool):
-    """dry-run 시 Mapping/Components 검증만 수행합니다."""
     raw_mapping = config.get("Mapping", {})
     components  = config.get("Components", {})
     if components:
         resolve_components(raw_mapping, components, verbose)
         log_ok("Mapping/Components 검증 통과", indent=2)
-    if config.get("Output", {}).get("Filename") is None:
+    output_filename = config.get("Output", {}).get("Filename")
+    if output_filename is None:
         die("Output.Filename 미선언")
 
 

@@ -8,6 +8,25 @@
     "ReleaseType": "Experimental",
     "Upstream": "Ubuntu",
 
+    // 경로 설정
+    "Source": ".",
+    "Temporary": "tmp",
+    "OutputDir": "build",
+    "SourceExclude": [
+        "tmp",
+        "build",
+        "build.sh",
+        "README.md",
+        ".*",
+//        ".git",
+//        ".github",
+        //        ".venv",
+        //        ".vscode",
+        //        ".idea",
+        "assets",
+        "doc"
+    ],
+
     // 동적 변수
     "Variables": {
         "BUILD_DATE": { "$run": "date +%y%m.%d.%H%M%S" },
@@ -105,7 +124,5 @@
     // 패키징 공통 설정
     "Output": {
         "Patterns": ["*.deb"],
-        // Filename 은 에디션에서 반드시 선언해야 함
-        "Filename": null,
     }
 }
