@@ -1,9 +1,9 @@
-[submodule "src/frameworks/AppRun"]
-	path = src/frameworks/AppRun
+[submodule "frameworks/AppRun"]
+	path = frameworks/AppRun
 	url = https://github.com/410-dev/AppRun
-[submodule "src/libraries/extension/java/libcodablejdbc"]
-	path = src/libraries/extension/java/libcodablejdbc
+[submodule "libraries/extension/java/libcodablejdbc"]
+	path = libraries/extension/java/libcodablejdbc
 	url = https://github.com/410-dev/libcodablejdbc.git
-[submodule "src/libraries/extension/java/libcodablejson"]
-	path = src/libraries/extension/java/libcodablejson
+[submodule "libraries/extension/java/libcodablejson"]
+	path = libraries/extension/java/libcodablejson
 	url = https://github.com/410-dev/libcodablejson.git
