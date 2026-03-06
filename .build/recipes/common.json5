@@ -1,0 +1,111 @@
+{
+    "StructType": "BuildRecipe",
+    "StructVersion": 2,
+
+    // 빌드 메타정보
+    "Name": "AquariusOS",
+    "Codename": "Genesis",
+    "ReleaseType": "Experimental",
+    "Upstream": "Ubuntu",
+
+    // 동적 변수
+    "Variables": {
+        "BUILD_DATE": { "$run": "date +%y%m.%d.%H%M%S" },
+        "VERSION":    { "$run": "date +%y%m.%d.%H%M" },
+        "RUNNER":     { "$run": "whoami" },
+    },
+
+    // 소스코드 텍스트 치환
+    // 소스 파일 안의 {{VARIABLE}} 을 변수값으로 치환
+    "Substitutions": {
+        "Delimiter": ["{{", "}}"],
+        "Apply": [
+            "**/*.sh", "**/*.py",
+            "**/*.json", "**/*.conf",
+        ],
+        "Skip": [
+            "**/*.jar", "**/*.class",
+            "**/*.png", "**/*.jpg",
+            "**/*.zip", "**/*.tar",
+        ]
+    },
+
+    // 전체 매핑 (모든 에디션 공통)
+    // Include 인데 여기 없으면 빌드 실패
+    "Mapping": {
+        "root-skeleton":           "/",
+        "branding":                "/",         // 에디션별 오버라이드
+        "system/core":             "/opt/aqua/sys",
+        "system/commands":         "/opt/aqua/sys/sbin",
+        "system/services":         "/opt/aqua/sys/services",
+        "system/preboot":          "/opt/aqua/boot/preboot",
+        "frameworks/AppRun":       "/opt/aqua/sys/frameworks/AppRun",
+        "frameworks/ObjectiveShell":   "/opt/aqua/sys/frameworks/ObjectiveShell",
+        "frameworks/GroupPolicyFramework": "/opt/aqua/sys/frameworks/GroupPolicyFramework",
+        "frameworks/RegSyncInstruct":  "/opt/aqua/sys/frameworks/RegSyncInstruct",
+        "frameworks/AdministrationControlEditor": "/opt/aqua/sys/frameworks/AdministrationControlEditor",
+        "libraries/system":        "/opt/aqua/sys/lib",
+        "libraries/extension":     "/opt/aqua/lib",
+        "resources":               "/opt/aqua/share",
+        "runtime-skeleton":        "/opt/aqua",
+        "applications/system":     "/opt/aqua/sys/applications",
+        "applications/user":       "/opt/aqua/applications",
+        "features/snapshot":       "/opt/aqua/features/snapshot",
+        "features/hypervisor":     "/opt/aqua/features/hypervisor",
+        "features/organization":   "/opt/aqua/features/organization",
+        "features/tailscale":      "/opt/aqua/features/tailscale",
+        "features/ngrok":          "/opt/aqua/features/ngrok",
+        "features/motd":           "/opt/aqua/features/motd",
+        "features/server":         "/opt/aqua/features/server",
+        "features/group-policy-propagation": "/opt/aqua/features/group-policy-propagation",
+    },
+
+    // 전처리기
+    "Preprocessor": {
+        "PathReplacements": {
+            "aisp-":            "aqua-",
+            "com.acadia.aisp.": "me.hysong.aqua.",
+            "com.acadia.":      "me.hysong.",
+            "aisp":             "aqua",
+            "AISP":             "AquariusOS"
+        },
+        "Blacklist": [".DS_Store", "Thumbs.db"],
+        "SetExecutables": [
+            "*.sh", "*.py",
+            "preinst", "postinst", "prerm", "postrm"
+        ],
+    },
+
+    // 빌드 우선순위
+    "BuildPriority": [
+        "libraries/extension/java/libcodablejson",
+        "libraries/extension/java/libcodablejdbc",
+        "libraries/system",
+        "libraries/extension",
+    ],
+
+    // 오류 무시
+    "IgnoreErrors": {
+        "FileNotFoundError": [
+            "libraries/extension/java/libcodablejdbc/lib/libcodablejson"
+        ]
+    },
+
+    "PostBuild": [
+        ["sudo", "chown", "-R", "root:root",       "{{Temporary}}/step_1"],
+        ["sudo", "chmod", "-R", "755",             "{{Temporary}}/step_1"],
+        ["sudo", "dpkg-deb", "--build",            "{{Temporary}}/step_1"],
+        ["sudo", "chown", "{{RUNNER}}:{{RUNNER}}", "{{Temporary}}/step_1.deb"],
+        ["sudo", "chmod", "644",                   "{{Temporary}}/step_1.deb"],
+        ["sudo", "chown", "-R", "{{RUNNER}}:{{RUNNER}}", "{{Temporary}}/step_1"],
+        ["mv", "{{Temporary}}/step_1.deb",         "{{Output}}/{{EDITION_FILENAME}}.deb"],
+        ["rm", "-rf", "{{Temporary}}"],
+    ],
+
+    // 패키징 공통 설정
+    "Output": {
+        "Patterns": ["*.deb"],
+        // Filename 은 에디션에서 반드시 선언해야 함
+        "Filename": null,
+    }
+}

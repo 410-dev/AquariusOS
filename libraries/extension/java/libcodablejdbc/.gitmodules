@@ -1,0 +1,3 @@
+[submodule "lib/libcodablejson"]
+	path = lib/libcodablejson
+	url = https://github.com/410-dev/libcodablejson.git

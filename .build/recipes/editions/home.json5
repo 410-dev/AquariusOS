@@ -1,0 +1,39 @@
+{
+    "StructType": "BuildRecipeEdition",
+    "StructVersion": 2,
+
+    "Edition": "home",
+    "DisplayName": "AquariusOS",
+    "PrettyName": "AquariusOS",
+
+    "Variables": {
+        "EDITION": "home",
+        "EDITION_DISPLAY": "Home",
+        "EDITION_FILENAME": "osaqua-home"
+    },
+
+    // 브랜딩은 에디션마다 다름
+    "Mapping": {
+        "branding/home":       "/",
+        "package-meta/ubuntu": "/DEBIAN",
+    },
+
+    "Components": {
+        "Mode": "blacklist",
+        "Exclude": [
+            // 서버 전용 기능 제외
+            "features/server",
+            "features/file-exchange-server",
+            "features/group-policy-propagation",
+            "frameworks/AdministrationControlEditor",
+        ],
+        // 기본값은 OFF, 여기 있는 것만 기본 ON
+        "DefaultOn": [
+            "features/motd",
+        ]
+    },
+
+    "Output": {
+        "Filename": "osaqua-home",
+    }
+}
