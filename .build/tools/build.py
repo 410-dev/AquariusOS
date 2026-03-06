@@ -195,6 +195,9 @@ def load_recipe(common_path: str, edition_path: str, verbose: bool) -> dict:
     log_info("변수 평가 중...")
     raw_variables = merged.get("Variables", {})
     resolved_vars = evaluate_variables(raw_variables, merged)
+    resolved_vars["Temporary"] = merged.get("Temporary", "tmp")
+    resolved_vars["Output"]    = merged.get("OutputDir", "build")
+    resolved_vars["Source"]    = merged.get("Source", ".")
     merged["_resolved_vars"] = resolved_vars
 
     log_verbose(f"평가된 변수: {resolved_vars}", verbose=verbose)
