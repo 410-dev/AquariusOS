@@ -2,24 +2,36 @@
 
 # Check if current system is installed in btrfs filesystem
 # If not, it is incompatible
-if [ "$(findmnt -n -o FSTYPE /)" != "btrfs" ]; then
-    echo "Error: The root filesystem is not BTRFS. This system is incompatible."
-    exit 1
+BYPASS_CHECK="0"
+if [[ -f {{NOINST_REG}}/SYSTEM/Installer/Flags/BypassBTRFSCheck.bool.rv ]]; then
+  BYPASS_CHECK=$(cat {{NOINST_REG}}/SYSTEM/Installer/Flags/BypassBTRFSCheck.bool.rv | tr -d ' \t\n\r')
+fi
+if [ "$BYPASS_CHECK" != "1" ]; then
+  if [ "$(findmnt -n -o FSTYPE /)" != "btrfs" ]; then
+      echo "Error: The root filesystem is not BTRFS. This system is incompatible."
+      exit 1
+  fi
 fi
 
 # Check if /boot is not mounted as separate partition
 # If so, then it is incompatible (Meaning: /boot MUST be a separate partition)
-if ! mountpoint -q /boot; then
-    echo "Error: /boot is not mounted as a separate partition. This system is incompatible."
-    exit 1
+BYPASS_CHECK="0"
+if [[ -f {{NOINST_REG}}/SYSTEM/Installer/Flags/BypassBootPartitionCheck.bool.rv ]]; then
+  BYPASS_CHECK=$(cat {{NOINST_REG}}/SYSTEM/Installer/Flags/BypassBootPartitionCheck.bool.rv | tr -d ' \t\n\r')
+fi
+if [ "$BYPASS_CHECK" != "1" ]; then
+    if ! mountpoint -q /boot; then
+        echo "Error: /boot is not mounted as a separate partition. This system is incompatible."
+        exit 1
+    fi
 fi
 
 
 # Host requirement: Ubuntu 26.04 LTS ONLY
-# User may bypass version checking by creating a file at /var/noinstfs/aqua/root.d/registry/SYSTEM/Installer/Flags/BypassHostOSCheck.bool.rv with content "1"
+# User may bypass version checking by creating a file at {{NOINST_REG}}/SYSTEM/Installer/Flags/BypassHostOSCheck.bool.rv with content "1"
 BYPASS_CHECK="0"
-if [[ -f /var/noinstfs/aqua/root.d/registry/SYSTEM/Installer/Flags/BypassHostOSCheck.bool.rv ]]; then
-  BYPASS_CHECK=$(cat /var/noinstfs/aqua/root.d/registry/SYSTEM/Installer/Flags/BypassHostOSCheck.bool.rv | tr -d ' \t\n\r')
+if [[ -f {{NOINST_REG}}/SYSTEM/Installer/Flags/BypassHostOSCheck.bool.rv ]]; then
+  BYPASS_CHECK=$(cat {{NOINST_REG}}/SYSTEM/Installer/Flags/BypassHostOSCheck.bool.rv | tr -d ' \t\n\r')
 fi
 
 if [ "$BYPASS_CHECK" != "1" ]; then

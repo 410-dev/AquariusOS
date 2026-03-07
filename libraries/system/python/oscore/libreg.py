@@ -14,7 +14,7 @@ _HIVE_MAP: Dict[str, str] = {
     "HKEY_LOCAL_MACHINE": "{{REG_GLOBAL}}",
     "HKEY_CURRENT_USER": f"$HOME/{_DEFAULT_LOCAL_PATH}",
     "HKEY_VOLATILE_MEMORY": "{{AQUA_VFS_ROOT}}/registry",
-    "HKEY_LOCAL_MACHINE_NOINST": "/var/noinstfs/aqua/root.d/registry"
+    "HKEY_LOCAL_MACHINE_NOINST": "{{NOINST_REG}}"
 }
 
 _HIVE_SHORT_MAP: Dict[str, str] = {

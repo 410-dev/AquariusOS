@@ -52,6 +52,7 @@
         "AQUA_VFS_ROOT":  "/usr/share/aqua/vfs",
         "REG_GLOBAL":     "/etc/aqua/registry",
         "VAR_ROOT":       "/var/aqua",
+        "NOINST_REG":     "/tmp/registry"
     },
 
     // 소스코드 텍스트 치환
