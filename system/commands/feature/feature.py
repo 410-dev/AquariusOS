@@ -12,8 +12,7 @@ import subprocess
 from oscore import libreg
 
 FEATURES_DIR = [
-    "/opt/aqua/sys/features",
-    "/opt/aqua/features"
+    "{{FEATURES}}"
 ]
 
 # Check if the user is root

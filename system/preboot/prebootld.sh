@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Read /opt/aqua/boot/preboot/conf/version
-PREBOOT_VERSION="$(cat /opt/aqua/boot/preboot/conf/version 2>/dev/null)"
+# Read {{AQUAROOT}}/boot/preboot/conf/version
+PREBOOT_VERSION="$(cat {{AQUAROOT}}/boot/preboot/conf/version 2>/dev/null)"
 if [[ -z "$PREBOOT_VERSION" ]]; then
     echo "No preboot version set. Exiting."
     exit 0
 fi
 
-# Launch /opt/aqua/boot/preboot/"$PREBOOT_VERSION"/preboot.sh
-PREBOOT_SCRIPT="/opt/aqua/boot/preboot/${PREBOOT_VERSION}/preboot.sh"
+# Launch {{AQUAROOT}}/boot/preboot/"$PREBOOT_VERSION"/preboot.sh
+PREBOOT_SCRIPT="{{AQUAROOT}}/boot/preboot/${PREBOOT_VERSION}/preboot.sh"
 if [[ -f "$PREBOOT_SCRIPT" ]]; then
     "$PREBOOT_SCRIPT"
     EXIT_CODE=$?

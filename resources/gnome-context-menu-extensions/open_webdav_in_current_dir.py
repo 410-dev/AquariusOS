@@ -35,9 +35,9 @@ class FastShareExtension(GObject.GObject, Nautilus.MenuProvider):
 
             # If empty, use anonymous
             if zenity_username == "":
-                subprocess.Popen(['apprun', '/opt/aqua/applications/openwebdav.apprun', flag, filepath, '--capabilities', 'download', '--accounts', 'anonymous:anonymous', '--allow-anonymous', 'download', '--autoclose', '5min', '--port', str(free_port), '--ip', '*.*.*.*'])
+                subprocess.Popen(['apprun', '{{USER_APPS}}/openwebdav.apprun', flag, filepath, '--capabilities', 'download', '--accounts', 'anonymous:anonymous', '--allow-anonymous', 'download', '--autoclose', '5min', '--port', str(free_port), '--ip', '*.*.*.*'])
             else:
-                subprocess.Popen(['apprun', '/opt/aqua/applications/openwebdav.apprun', flag, filepath, '--capabilities', 'download', '--accounts', f'{zenity_username}:{zenity_password}', '--autoclose', '5min', '--port', str(free_port), '--ip', '*.*.*.*'])
+                subprocess.Popen(['apprun', '{{USER_APPS}}/openwebdav.apprun', flag, filepath, '--capabilities', 'download', '--accounts', f'{zenity_username}:{zenity_password}', '--autoclose', '5min', '--port', str(free_port), '--ip', '*.*.*.*'])
 
             # Zenity show notification that file is shared in current local ip address
             current_local_ip = subprocess.check_output(['hostname', '-I']).decode('utf-8').strip()

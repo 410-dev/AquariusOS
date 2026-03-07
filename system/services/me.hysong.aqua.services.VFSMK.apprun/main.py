@@ -10,8 +10,8 @@ def main():
     log.info("VFSMK service started.")
     log.info(f"AppContext: id={AppContext().id()}, bundle_id={AppContext().id()}, box={AppContext().box()}")
     
-    exec_py = "/opt/aqua/sys/sbin/mkvfs.py"
-    mnt_pty = "/opt/aqua/vfs"
+    exec_py = "{{SYS_CMDS}}/mkvfs.py"
+    mnt_pty = "{{AQUA_VFS_ROOT}}"
     sz = reg.read("/SYSTEM/Services/me.hysong.aqua/VFSMK/SizeMB", 2048)
     try:
         sz = int(sz)
@@ -21,7 +21,7 @@ def main():
 
     cmd = f"/usr/bin/python3 {exec_py} --path={mnt_pty} --size={sz}M --mkdir --template=SYS1 --permission=2777"
     
-    log.info("Using shell, calling '/opt/aqua/sys/sbin/mkvfs.py' to create VFS mount point at /opt/aqua/vfs.")
+    log.info("Using shell, calling '{{SYS_CMDS}}/mkvfs.py' to create VFS mount point at {{AQUA_VFS_ROOT}}.")
     log.info(f"-> Command: {cmd}")
     ret = subprocess.call(cmd, shell=True)
     if ret != 0:

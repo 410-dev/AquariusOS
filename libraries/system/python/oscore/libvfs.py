@@ -7,7 +7,7 @@ import json
 from typing import Optional, Dict, Any
 
 # ---------- Configuration ----------
-VFS_ROOT = '/opt/aqua/vfs'
+VFS_ROOT = '{{AQUA_VFS_ROOT}}'
 # Poll interval used by read(wait-for-file) earlier
 _DEFAULT_POLL = 0.05
 
@@ -21,7 +21,7 @@ def _ensure_vfs_root():
         try:
             enable_persistent = False
             try:
-                with open('/opt/aqua/registry/SYSTEM/Services/VFS/EnablePersistentVFS', 'r', encoding='utf-8') as f:
+                with open('{{REG_GLOBAL}}/SYSTEM/Services/VFS/EnablePersistentVFS', 'r', encoding='utf-8') as f:
                     val = f.read().strip().lower()
                     enable_persistent = val in ('1', 'true', 'yes')
             except Exception:

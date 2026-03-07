@@ -17,9 +17,9 @@ VALID_TYPES = ["dword", "qword", "bool", "str", "list", "hex", "float", "double"
 
 # --- Hive Configuration Constants ---
 DEFAULT_HIVES = {
-    "HKEY_LOCAL_MACHINE": Path("/opt/aqua/registry"),
+    "HKEY_LOCAL_MACHINE": Path("{{REG_GLOBAL}}"),
     "HKEY_CURRENT_USER": Path(os.path.expanduser("~/.local/aqua/registry")),
-    "HKEY_VOLATILE_MEMORY": Path("/opt/aqua/vfs/registry"),
+    "HKEY_VOLATILE_MEMORY": Path("{{AQUA_VFS_ROOT}}/registry"),
 }
 
 HIVE_SHORT_MAP: Dict[str, str] = {

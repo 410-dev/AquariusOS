@@ -8,11 +8,11 @@ from pathlib import Path
 def plugin(data: dict) -> dict:
 
     search_paths = [
-        "/opt/aqua/lib/python/",
+        "{{OPT_LIBS}}/python/",
         "/usr/share/lib/python/me.hysong/apprunutils/"
     ]
 
-    # Scan under /opt/aqua/lib/python
+    # Scan under {{OPT_LIBS}}/python
     # -> Then, ask which components to import
 
     components = []
@@ -32,7 +32,7 @@ def plugin(data: dict) -> dict:
                     components.append(module_path)
 
     # Enumerate public functions and classes in each component
-    sys.path.insert(0, "/opt/aqua/lib/python/aqua")
+    sys.path.insert(0, "{{OPT_LIBS}}/python/aqua")
     for p in search_paths:
         if p not in sys.path:
             sys.path.insert(0, p)

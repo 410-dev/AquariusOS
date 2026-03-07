@@ -13,7 +13,7 @@ from datetime import datetime
 # Configuration & Constants
 # ==============================================================================
 REGISTRY_CHECK_CMD = [
-    "/opt/aqua/sys/sbin/reg.sh", "root", "read",
+    "{{SYS_CMDS}}/reg.sh", "root", "read",
     "HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled"
 ]
 MOUNT_POINT = "/mnt/btrfs_lib_root"

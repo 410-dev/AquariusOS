@@ -7,8 +7,8 @@ Before=multi-user.target
 [Service]
 Type=oneshot
 User=root
-WorkingDirectory=/opt/aqua/homes/root
-ExecStart=/bin/sh -c '[ -d /opt/aqua/homes/root/systemd/pid ] && rm -rf /opt/aqua/homes/root/systemd/pid/* || mkdir -p /opt/aqua/homes/root/systemd/pid'
+WorkingDirectory={{AQUAROOT}}/homes/root
+ExecStart=/bin/sh -c '[ -d {{AQUAROOT}}/homes/root/systemd/pid ] && rm -rf {{AQUAROOT}}/homes/root/systemd/pid/* || mkdir -p {{AQUAROOT}}/homes/root/systemd/pid'
 
 [Install]
 WantedBy=multi-user.target

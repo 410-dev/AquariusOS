@@ -132,7 +132,7 @@ popd > /dev/null
 # ==============================================================================
 # 5. Finish
 # ==============================================================================
-/opt/aqua/sys/sbin/preboot.sh SetNextInstallmentScript /opt/aqua/features/snapshot/stages/stage3.sh
+{{SYS_CMDS}}/preboot.sh SetNextInstallmentScript {{FEATURES}}/snapshot/stages/stage3.sh
 if [[ $? -ne 0 ]]; then error_exit "Setting next installment script failed." 8 8; fi
 log_step 4 4 "Cleanup complete."
 
@@ -141,9 +141,9 @@ umount "$MOUNT_POINT"
 rmdir "$MOUNT_POINT"
 
 
-python3 "/opt/aqua/features/snapshot/grub_editor_stg1.py"
+python3 "{{FEATURES}}/snapshot/grub_editor_stg1.py"
 if [[ $? -ne 0 ]]; then error_exit "GRUB configuration patch (2) update failed." 4 4; fi
 
 echo "[+] Conversion confirmed successful. System is optimized."
-#sudo /opt/aqua/sys/sbin/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled" bool 1
+#sudo {{SYS_CMDS}}/reg.sh root write "HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled" bool 1
 exit 0

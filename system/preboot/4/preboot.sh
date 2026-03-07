@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FLAG_FILES="/opt/aqua/boot/preboot/var"
+FLAG_FILES="{{AQUAROOT}}/boot/preboot/var"
 
 echo "Preboot Version 4"
 

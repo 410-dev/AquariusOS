@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ "$(/opt/aqua/sys/sbin/reg.sh root read 'HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled')" != "True" ]]; then
+if [[ "$({{SYS_CMDS}}/reg.sh root read 'HKEY_LOCAL_MACHINE/SYSTEM/Features/snapshot/Enabled')" != "True" ]]; then
     echo "Service incompatible: Snapshot support feature is not enabled."
     exit 0
 fi
@@ -10,7 +10,7 @@ sleep 3
 
 function SET_SAFE_WALLPAPER() {
     echo "SET_SAFE_WALLPAPER called"
-    /opt/aisp/sys/sbin/aqua.sh wallpaper --snapshot-mode
+    {{SYS_CMDS}}/aqua.sh wallpaper --snapshot-mode
 }
 
 # 1. Check for Sandbox (OverlayFS)

@@ -6,8 +6,8 @@ import sys
 import subprocess
 import os
 
-# Include /opt/aqua/sys/lib/python
-sys.path.insert(0, "/opt/aqua/sys/lib/python")
+# Include {{SYS_PYLIBS}}
+sys.path.insert(0, "{{SYS_PYLIBS}}")
 
 from oscore import libreg as reg
 

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-source /opt/aqua/sys/lib/shell/guarding.shx
+source {{SYS_SHELLLIBS}}/guarding.shx

@@ -2,7 +2,7 @@
 Name=SnapshotBootDetector
 GenericName=Snapshot Boot Detector Service
 Comment=Detects if current boot session is a snapshot or not.
-Exec=/opt/aqua/features/snapshot/snapshot-bootstateutil.sh
+Exec={{FEATURES}}/snapshot/snapshot-bootstateutil.sh
 Terminal=false
 Type=Application
 X-GNOME-Autostart-enabled=true

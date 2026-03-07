@@ -5,7 +5,7 @@ After=local-fs.target
 
 [Service]
 Type=oneshot
-ExecStart=/opt/aqua/boot/preboot/prebootld.sh
+ExecStart={{AQUAROOT}}/boot/preboot/prebootld.sh
 
 [Install]
 WantedBy=sysinit.target

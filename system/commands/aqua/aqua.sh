@@ -4,9 +4,6 @@
 #   aqua help - List all available commands
 #   aqua upgrade
 
-# Load manuals
-ManualsPath=("/opt/aqua/sys/man" "/opt/aqua/man")
-
 case "$1" in
     help|--help|-h)
         echo "AquariusOS Command Line Utility"
@@ -78,7 +75,7 @@ case "$1" in
         if [[ "$2" == "--hot-install" ]]; then
             echo "WRN@AquariusOS.AquariusOSMiscTool=INSTABILITY: Hot installation is not recommended and may lead to system instability."
             echo "Proceeding with hot installation..."
-            apt install /opt/aqua/data/update/*.deb
+            apt install {{AQUAROOT}}/data/update/*.deb
             if [[ $? -ne 0 ]]; then
                 echo "ERR@AquariusOS.AquariusOSMiscTool=HOT_INSTALL_FAILED: Hot installation failed."
                 exit 1
@@ -87,13 +84,13 @@ case "$1" in
             exit 0
         fi
 
-        echo "Copying package to /opt/aqua/data/update..."
-        mkdir -p /opt/aqua/data/update
+        echo "Copying package to {{AQUAROOT}}/data/update..."
+        mkdir -p {{AQUAROOT}}/data/update
         if [[ ! -d /tmp/osaqua-update-temp/builds ]]; then
             echo "ERR@AquariusOS.AquariusOSMiscTool=NO_SUCH_FILE_OR_DIRECTORY: Builds directory not found. Use 'aqua update' first."
             exit 1
         fi
-        cp /tmp/osaqua-update-temp/builds/*.deb /opt/aqua/data/update/
+        cp /tmp/osaqua-update-temp/builds/*.deb {{AQUAROOT}}/data/update/
         if [[ $? -ne 0 ]]; then
             echo "ERR@AquariusOS.AquariusOSMiscTool=FILE_OPERATION_COPY_FAILED: Failed to copy update packages."
             exit 1
@@ -101,19 +98,19 @@ case "$1" in
 
         # Create installation script
         echo "Creating installation script..."
-        INSTALL_SCRIPT="/opt/aqua/data/update/install_update.sh"
+        INSTALL_SCRIPT="{{AQUAROOT}}/data/update/install_update.sh"
         cat << 'EOF' > "$INSTALL_SCRIPT"
 #!/bin/bash
 STEP 1 3 "Installing update packages..."
-apt install /opt/aqua/data/update/*.deb
+apt install {{AQUAROOT}}/data/update/*.deb
 VALIDATE $? "Package installation"
 STEP 2 3 "Finalizing update..."
 # Placeholder for any finalization steps
 sleep 2
 VALIDATE $? "Finalization"
 STEP 3 3 "Cleaning up..."
-rm -rf /opt/aqua/data/update/*.deb
-rm -f /opt/aqua/data/update/install_update.sh
+rm -rf {{AQUAROOT}}/data/update/*.deb
+rm -f {{AQUAROOT}}/data/update/install_update.sh
 exit 0
 EOF
 
@@ -121,8 +118,8 @@ EOF
 
         # Register using preboot update mechanism
         echo "Registering update with preboot mechanism..."
-        /opt/aqua/sys/sbin/preboot.sh EnablePreboot 3
-        /opt/aqua/sys/sbin/preboot.sh QueueUpdate "$INSTALL_SCRIPT" "true"
+        {{SYS_CMDS}}/preboot.sh EnablePreboot 3
+        {{SYS_CMDS}}/preboot.sh QueueUpdate "$INSTALL_SCRIPT" "true"
 
         echo "Upgrade packages are ready. Reboot the system to apply updates."
         ;;
@@ -152,7 +149,7 @@ EOF
         # Read registry keys
         declare -A versionInfo
         for key in "${avblKeys[@]}"; do
-            value=$(/opt/aqua/sys/sbin/reg.sh root read HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Current${key} 2>/dev/null)
+            value=$({{SYS_CMDS}}/reg.sh root read HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/Current${key} 2>/dev/null)
             versionInfo["$key"]="$value"
         done
 
@@ -170,7 +167,7 @@ EOF
             --list)
                 echo "Available graphic codes:"
                 # List directories with themeinfo.txt
-                for dir in /opt/aqua/sys/graphics/themes/*/; do
+                for dir in {{RESOURCES}}/graphics/themes/*/; do
                     if [[ -f "$dir/themeinfo.txt" ]]; then
                         code=$(basename "$dir")
                         name=$(grep -m1 "^Name=" "$dir/themeinfo.txt" | cut -d'=' -f2-)
@@ -181,8 +178,8 @@ EOF
 
             --set)
                 # If current system is in snapshot mode, prevent changing wallpapers
-                if [[ -f "/opt/aqua/sys/sbin/snapshot-sessioninfo.sh" ]]; then
-                    BOOTSTATE=$(/opt/aqua/sys/sbin/snapshot-sessioninfo.sh)
+                if [[ -f "{{SYS_CMDS}}/snapshot-sessioninfo.sh" ]]; then
+                    BOOTSTATE=$({{SYS_CMDS}}/snapshot-sessioninfo.sh)
                     if [[ "$BOOTSTATE" == sandbox* || "$BOOTSTATE" == rwsnapshot* ]]; then
                         echo "Error: Cannot change wallpapers while in snapshot or sandbox mode."
                         exit 1
@@ -193,7 +190,7 @@ EOF
                     echo "Error: No graphic code specified."
                     exit 1
                 fi
-                THEME_DIR="/opt/aqua/sys/graphics/$GRAPHIC_CODE"
+                THEME_DIR="{{RESOURCES}}/graphics/$GRAPHIC_CODE"
                 if [[ ! -d "$THEME_DIR" || ! -f "$THEME_DIR/themeinfo.txt" ]]; then
                     echo "Error: Graphic code '$GRAPHIC_CODE' not found."
                     exit 1
@@ -201,18 +198,18 @@ EOF
                 echo "Setting wallpapers for graphic code: $GRAPHIC_CODE"
 
                 # Update registry
-                /opt/aqua/sys/sbin/reg.sh $(whoami) write HKEY_CURRENT_USER/SYSTEM/LocalSettings/Graphics/Gnome/GraphicCode str "$GRAPHIC_CODE"
+                {{SYS_CMDS}}/reg.sh $(whoami) write HKEY_CURRENT_USER/SYSTEM/LocalSettings/Graphics/Gnome/GraphicCode str "$GRAPHIC_CODE"
 
                 echo "Wallpapers set successfully."
                 ;;
 
             --snapshot-mode)
-                if [[ -f "/opt/aqua/sys/sbin/snapshot-sessioninfo.sh" ]]; then
-                    BOOTSTATE=$(/opt/aqua/sys/sbin/snapshot-sessioninfo.sh)
+                if [[ -f "{{SYS_CMDS}}/snapshot-sessioninfo.sh" ]]; then
+                    BOOTSTATE=$({{SYS_CMDS}}/snapshot-sessioninfo.sh)
                     if [[ "$BOOTSTATE" == sandbox* ]]; then
-                        WALLPATH="/opt/aqua/sys/graphics/modes/snapshots/sandbox.png"
+                        WALLPATH="{{RESOURCES}}/graphics/modes/snapshots/sandbox.png"
                     elif [[ "$BOOTSTATE" == rwsnapshot* ]]; then
-                        WALLPATH="/opt/aqua/sys/graphics/modes/snapshots/writable.png"
+                        WALLPATH="{{RESOURCES}}/graphics/modes/snapshots/writable.png"
                     else
                         echo "Error: System is not in sandbox or snapshot mode."
                         exit 1

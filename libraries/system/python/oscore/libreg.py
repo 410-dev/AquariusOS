@@ -11,9 +11,9 @@ from typing import Any, Dict, List, Optional, Tuple
 # ----------------------------
 _DEFAULT_LOCAL_PATH=".local/aqua/registry"
 _HIVE_MAP: Dict[str, str] = {
-    "HKEY_LOCAL_MACHINE": "/opt/aqua/registry",
+    "HKEY_LOCAL_MACHINE": "{{REG_GLOBAL}}",
     "HKEY_CURRENT_USER": f"$HOME/{_DEFAULT_LOCAL_PATH}",
-    "HKEY_VOLATILE_MEMORY": "/opt/aqua/vfs/registry",
+    "HKEY_VOLATILE_MEMORY": "{{AQUA_VFS_ROOT}}/registry",
     "HKEY_LOCAL_MACHINE_NOINST": "/var/noinstfs/aqua/root.d/registry"
 }
 

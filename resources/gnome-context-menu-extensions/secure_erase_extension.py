@@ -21,7 +21,7 @@ class SecureEraseExtension(GObject.GObject, Nautilus.MenuProvider):
 
 
             # TODO: Retrieve user preferences for type and iterations
-            subprocess.Popen(['python3', '/opt/aqua/lib/python/security/zerofill.py', '--type', 'random', '--iterations', '2', filepath])
+            subprocess.Popen(['python3', '{{OPT_LIBS}}/python/security/zerofill.py', '--type', 'random', '--iterations', '2', filepath])
 
     def get_file_items(self, *args):
         # Only show for regular files, not directories (optional)

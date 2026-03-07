@@ -4,7 +4,7 @@
 # $2 = (Optional) update file path / Preboot version
 # $3 = (Optional) enable snapshot
 
-PREBOOT_STORAGE="/opt/aqua/boot/preboot"
+PREBOOT_STORAGE="{{AQUAROOT}}/boot/preboot"
 PERSIST_STORAGE="${PREBOOT_STORAGE}/var"
 
 case "$1" in
@@ -72,7 +72,7 @@ case "$1" in
         fi
 
         INSTALLMENT_SCRIPT="$2"
-        COPY_TO="/opt/aqua/boot/preboot/var/install_update_next.sh"
+        COPY_TO="{{AQUAROOT}}/boot/preboot/var/install_update_next.sh"
 
         if [[ -z "$INSTALLMENT_SCRIPT" ]]; then
             echo "Usage: $0 SetNextInstallmentScript <installment_script_path>"
@@ -114,7 +114,7 @@ case "$1" in
             exit 1
         fi
         ROLLBACK_SCRIPT="$2"
-        COPY_TO="/opt/aqua/boot/preboot/var/rollback.sh"
+        COPY_TO="{{AQUAROOT}}/boot/preboot/var/rollback.sh"
 
         if [[ -z "$ROLLBACK_SCRIPT" ]]; then
             echo "Usage: $0 SetInstallmentScriptFailRollbackScript <installment_script_path>"

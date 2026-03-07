@@ -42,10 +42,10 @@ esac
 
 # Services location
 # Priority order:
-#  1. /opt/aqua/sys/services/<service_id>.apprun
-#  2. /opt/aqua/services/<service_id>.apprun
+#  1. {{SYS_SERVICES}}/<service_id>.apprun
+#  2. {{OPT_SERVICES}}/<service_id>.apprun
 
-DIRECTORIES=("/opt/aqua/sys/services" "/opt/aqua/services")
+DIRECTORIES=("{{SYS_SERVICES}}" "{{OPT_SERVICES}}")
 if [ "$ACTION" == "list" ]; then
     for DIR in "${DIRECTORIES[@]}"; do
         if [ -d "$DIR" ]; then

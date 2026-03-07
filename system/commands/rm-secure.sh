@@ -7,4 +7,4 @@
 #    files as list of files to securely delete
 
 # Run python code
-python3 /opt/aqua/lib/python/security/zerofill.py "$@"
+python3 {{OPT_LIBS}}/python/security/zerofill.py "$@"

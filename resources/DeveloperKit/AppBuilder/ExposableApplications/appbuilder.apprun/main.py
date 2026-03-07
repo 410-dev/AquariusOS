@@ -54,7 +54,7 @@ def execute_routine(routine_data: dict) -> dict:
     routine_obj: dict = routine_data["InputRequirements"]
     memory: dict = {}
 
-    sys.path.insert(0, "/opt/aqua")
+    sys.path.insert(0, "{{AQUAROOT}}")
 
 
     for key in routine_obj.keys():
@@ -103,7 +103,7 @@ def execute_routine(routine_data: dict) -> dict:
     return memory
 
 def get_templates() -> dict[str, str]:
-    templates_dir = "/opt/aqua/share/DeveloperKit/AppBuilder/Templates"
+    templates_dir = "{{RESOURCES}}/DeveloperKit/AppBuilder/Templates"
     templates: dict[str, str] = {}
     if not os.path.exists(templates_dir):
         return templates

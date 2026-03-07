@@ -12,9 +12,9 @@ def main(args: list[str]) -> int:
     module_name = args[0]
     json_string = args[1]
 
-    # Module is in /opt/aqua/share/DeveloperKit/AppBuilder/Plugins/
+    # Module is in {{RESOURCES}}/DeveloperKit/AppBuilder/Plugins/
     try:
-        sys.path.append("/opt/aqua")
+        sys.path.append("{{AQUAROOT}}")
         module = importlib.import_module(f"aqua.share.DeveloperKit.AppBuilder.Plugins.{module_name}")
     except ImportError as e:
         print(f"Error importing module {module_name}: {e}")

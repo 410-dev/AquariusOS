@@ -9,7 +9,7 @@
         },
         "libs-vscode": {
             "display": "VSCode development settings",
-            "value": "{\"python.analysis.extraPaths\": [\"/usr/share/lib/python/me.hysong/apprunutils\", \"/opt/aqua/lib/python/\", \"/opt/aqua/lib/python/aqua\"]}",
+            "value": "{\"python.analysis.extraPaths\": [\"/usr/share/lib/python/me.hysong/apprunutils\", \"{{OPT_LIBS}}/python/\", \"{{OPT_LIBS}}/python/aqua\"]}",
             "type": "str"
         },
         "libs": {
@@ -29,7 +29,7 @@
         },
         "InstallPath": {
             "display": "Service Install Path",
-            "value": "/opt/aqua/services",
+            "value": "{{SYS_SERVICES}}",
             "type": "str"
         },
         "main_content": {

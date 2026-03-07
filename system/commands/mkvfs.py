@@ -28,12 +28,12 @@ def make(path: str, size: str, mkdir: bool, template: str, permission: str, allo
     subprocess.call(["chmod", permission, path])
 
     if template:
-        if not os.path.exists(f"/opt/aqua/share/vfstemplates/{template}.vfstemplate"):
+        if not os.path.exists(f"{{RESOURCES}}/vfstemplates/{template}.vfstemplate"):
             print(f"Template does not exist: {template}")
             return mount_operation.returncode
         # Copy template files to path
         print(f"Copying template '{template}' to '{path}'")
-        subprocess.call(["cp", "-a", f"/opt/aqua/share/vfstemplates/{template}.vfstemplate/.", path])
+        subprocess.call(["cp", "-a", f"{{RESOURCES}}/vfstemplates/{template}.vfstemplate/.", path])
 
     return mount_operation.returncode
 

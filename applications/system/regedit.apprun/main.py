@@ -16,7 +16,7 @@ EXCLUDED_USERS = {
 }
 
 SCRIPT_PATH = "/usr/local/sbin/apprun.sh"
-APP_PATH = "/opt/aqua/sys/applications/regedit.apprun/regedit-app.apprun"
+APP_PATH = "{{SYS_APPS}}/regedit.apprun/regedit-app.apprun"
 
 
 # ---------------------------
