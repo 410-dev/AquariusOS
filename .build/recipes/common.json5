@@ -13,18 +13,14 @@
     "Temporary": "tmp",
     "OutputDir": "build",
     "SourceExclude": [
+        ".*",
         "tmp",
         "build",
         "build.sh",
         "README.md",
-        ".*",
-//        ".git",
-//        ".github",
-        //        ".venv",
-        //        ".vscode",
-        //        ".idea",
         "assets",
-        "doc"
+        "doc",
+        "tests"
     ],
 
     // 동적 변수
@@ -90,6 +86,7 @@
         "applications/system":     "/usr/share/aqua/sys/applications",
         "applications/user":       "/applications",
         "features":                "/usr/share/aqua/features",
+        "system/reg-templates":    "/usr/share/aqua/sys/templates/registry",
     },
 
     // 전처리기

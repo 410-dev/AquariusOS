@@ -1,11 +1,17 @@
 #!/bin/bash
 
 function mark() {
+    # Check if directory exists
+    if [[ ! -d "{{VAR_ROOT}}" ]]; then
+        mkdir -p "{{VAR_ROOT}}"
+    fi
     echo "$2" > "{{VAR_ROOT}}/$1"
 }
 
 function unmark() {
-    rm -f "{{VAR_ROOT}}/$1"
+    if is_marked "$1"; then
+       rm -f "{{VAR_ROOT}}/$1"
+    fi
 }
 
 function is_marked() {
