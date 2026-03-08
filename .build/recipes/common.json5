@@ -31,7 +31,8 @@
 
         // Path 변수
         "CMDS":           "/usr/bin",
-        "SYS_CMDS":       "/usr/bin",
+        "SYS_CMDS":       "/usr/share/aqua/sys/cmds",
+        "AUTOCOMPLETE":   "/usr/share/aqua/sys/completion-recipes",
         "USER_APPS":      "/applications",
         "AQUAROOT":       "/usr/share/aqua",
         "OSCORE":         "/usr/share/aqua/sys",
@@ -70,23 +71,24 @@
     // 전체 매핑 (모든 에디션 공통)
     // Include 인데 여기 없으면 빌드 실패
     "Mapping": {
-        "root-skeleton":           "/",
-        "branding":                "/",         // 에디션별 오버라이드
-        "system/core":             "/usr/share/aqua/sys",
-        "system/commands":         "/usr/bin",
-        "system/services":         "/usr/share/aqua/sys/services",
-        "system/preboot":          "/usr/share/aqua/boot/preboot",
-        "frameworks":              "/usr/lib",
-        "libraries/system/python": "/usr/lib/python3/dist-packages",
-        "libraries/system/java":   "/usr/lib/jvm/default-java",
-        "libraries/system/shell":  "/usr/share/aqua/sys/lib/shell",
-        "libraries/extension":     "/usr/share/aqua/lib",
-        "resources":               "/usr/share/aqua/share",
-        "runtime-skeleton":        "/usr/share/aqua",
-        "applications/system":     "/usr/share/aqua/sys/applications",
-        "applications/user":       "/applications",
-        "features":                "/usr/share/aqua/features",
-        "system/reg-templates":    "/usr/share/aqua/sys/templates/registry",
+        "root-skeleton":              "/",
+        "branding":                   "/",         // 에디션별 오버라이드
+        "system/core":                "/usr/share/aqua/sys",
+        "system/commands/exec":       "/usr/share/aqua/sys/cmds",
+        "system/commands/completions":"/usr/share/aqua/sys/completion-recipes",
+        "system/services":            "/usr/share/aqua/sys/services",
+        "system/preboot":             "/usr/share/aqua/boot/preboot",
+        "frameworks":                 "/usr/lib",
+        "libraries/system/python":    "/usr/lib/python3/dist-packages",
+        "libraries/system/java":      "/usr/lib/jvm/default-java",
+        "libraries/system/shell":     "/usr/share/aqua/sys/lib/shell",
+        "libraries/extension":        "/usr/share/aqua/lib",
+        "resources":                  "/usr/share/aqua/share",
+        "runtime-skeleton":           "/usr/share/aqua",
+        "applications/system":        "/usr/share/aqua/sys/applications",
+        "applications/user":          "/applications",
+        "features":                   "/usr/share/aqua/features",
+        "system/reg-templates":       "/usr/share/aqua/sys/templates/registry",
     },
 
     // 전처리기
