@@ -1,7 +1,7 @@
 [Unit]
 Description=AquariusOS Telemetry Service
-After=me.hysong.aqua.services.VFSMK.service network-online.target
-Requires=me.hysong.aqua.services.VFSMK.service network-online.target
+After=VFSMK.service network-online.target
+Requires=VFSMK.service network-online.target
 
 [Service]
 Type=simple
@@ -9,7 +9,7 @@ User=root
 CapabilityBoundingSet=CAP_SYS_ADMIN
 AmbientCapabilities=CAP_SYS_ADMIN
 WorkingDirectory={{AQUAROOT}}/homes/root
-ExecStart=/usr/local/sbin/apprun.sh {{SYS_SERVICES}}/me.hysong.aqua.services.VFSGC.apprun
+ExecStart=/usr/local/sbin/apprun.sh {{SYS_SERVICES}}/VFSGC.apprun
 SuccessExitStatus=143
 Restart=on-failure
 RestartSec=10

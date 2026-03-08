@@ -1,5 +1,5 @@
 [Unit]
-Description=AquariusOS Virtual File System Service
+Description=AquariusOS Registry Propagator Service
 After=network-online.target
 Wants=network-online.target
 
@@ -10,7 +10,7 @@ User=root
 CapabilityBoundingSet=CAP_SYS_ADMIN
 AmbientCapabilities=CAP_SYS_ADMIN
 WorkingDirectory={{AQUAROOT}}/homes/root
-ExecStart=/usr/local/sbin/apprun.sh {{SYS_SERVICES}}/me.hysong.aqua.services.DirectoryMaker.apprun
+ExecStart=/usr/local/sbin/apprun.sh {{SYS_SERVICES}}/RegistryPropagator.apprun
 SuccessExitStatus=143
 Restart=on-failure
 RestartSec=10

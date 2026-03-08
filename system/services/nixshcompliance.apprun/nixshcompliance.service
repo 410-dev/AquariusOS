@@ -1,10 +1,10 @@
 [Unit]
 Description=Creates symbolic links to commands in AquariusOS programs directory
-After=me.hysong.aqua.services.VFSMK.service
+After=VFSMK.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/sbin/apprun.sh {{SYS_SERVICES}}/me.hysong.services.nixshcompliance.apprun
+ExecStart=/usr/local/sbin/apprun.sh {{SYS_SERVICES}}/nixshcompliance.apprun
 #StandardOutput=journal
 
 [Install]
