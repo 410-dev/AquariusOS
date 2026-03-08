@@ -63,7 +63,7 @@ def main():
 
     # Reading registry for ObjectiveShell
     env_list = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Environment", {})
-    paths = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Paths", "{{RESOURCES}}/ObjectiveShell/Instructions/foundation")
+    paths = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Paths", "{{SYS_FRAMEWORKS}}/ObjectiveShell/Instructions/foundation")
     dev_on = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Developer", False)
     allow_fallback_to_bash = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/AllowFallbackToBash", False)
 
@@ -73,7 +73,7 @@ def main():
         print(f"   Composing env: {env[key]}")
 
     if dev_on:
-        paths = f"{paths}:{{RESOURCES}}/ObjectiveShell/Instructions/developers"
+        paths = f"{paths}:{{SYS_FRAMEWORKS}}/ObjectiveShell/Instructions/developers"
 
     env["PATH"] = paths
 
@@ -106,15 +106,13 @@ def main():
                     result = session.execute_line(parsed_line)
                     if result.returns is not None and session.environment.get("OBJSHELL_PRINT_RETURNS", "1"):
                         print(result.returns)
-            return
+            return result.exit_code
         else:
             # Otherwise, treat the arguments as a single command
-            raw_input = " ".join(cmdline_input)
-            parsed_line = session.parse_line(raw_input)
-            result = session.execute_line(parsed_line)
+            result = session.execute_line(cmdline_input)
             if result.returns is not None and session.environment.get("OBJSHELL_PRINT_RETURNS", "1"):
                 print(result.returns)
-            return
+            return result.exit_code
 
     while True:
         try:
