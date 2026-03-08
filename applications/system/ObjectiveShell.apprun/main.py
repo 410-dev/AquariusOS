@@ -5,6 +5,7 @@ import datetime
 import os
 import subprocess
 import readline
+import sys
 
 
 # AVBL Keys for env vars
@@ -94,6 +95,26 @@ def main():
         except IOError:
             pass
 
+    # Get parameters
+    cmdline_input: list = sys.argv[1:]
+    if cmdline_input:
+        # Check if the first argument is a file
+        if os.path.isfile(cmdline_input[0]):
+            with open(cmdline_input[0], "r") as script_file:
+                for line in script_file:
+                    parsed_line = session.parse_line(line.strip())
+                    result = session.execute_line(parsed_line)
+                    if result.returns is not None and session.environment.get("OBJSHELL_PRINT_RETURNS", "1"):
+                        print(result.returns)
+            return
+        else:
+            # Otherwise, treat the arguments as a single command
+            raw_input = " ".join(cmdline_input)
+            parsed_line = session.parse_line(raw_input)
+            result = session.execute_line(parsed_line)
+            if result.returns is not None and session.environment.get("OBJSHELL_PRINT_RETURNS", "1"):
+                print(result.returns)
+            return
 
     while True:
         try:
