@@ -1,4 +1,0 @@
-{
-    "com.aqua.common": "{{OPT_LIBS}}/python",
-    "com.aqua.sys": "{{SYS_PYLIBS}}"
-}
