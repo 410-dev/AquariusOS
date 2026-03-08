@@ -9,7 +9,7 @@ import os
 import sys
 import subprocess
 
-from oscore import libreg
+from aqua.oscore import libreg
 
 FEATURES_DIR = [
     "{{FEATURES}}"
@@ -30,8 +30,15 @@ def get_features() -> tuple[dict[str, bool], dict[str, str]]:
         if not os.path.exists(features_dir):
             continue
 
-        for feature in os.listdir(features_dir):
+        # Recursive, it is bundle only if enable.sh file exists in the directory. Traverse all directories in features_dir, and check if enable.sh file exists. If it does, it is a feature bundle, and the name of the feature is the name of the directory.
+        for root, dirs, files in os.walk(features_dir):
+
+            # Show xxx/yyy/feature_name, not just basename
+            feature = os.path.relpath(root, features_dir)
             if feature in blacklisted:
+                continue
+
+            if not "enable.sh" in files: # enable.sh 파일이 없는 디렉토리는 기능 번들이 아니다.
                 continue
 
             enabled = libreg.read(f"HKEY_LOCAL_MACHINE/SYSTEM/Features/{feature}/Enabled", False)
@@ -95,8 +102,9 @@ def enable_feature(feature: str, trigger_only: bool, one_way_enable: bool, exper
 
     # 활성화
     enable_script = os.path.join(bundle_info["path"], "enable.sh")
+    result = None
     if os.path.exists(enable_script):
-        result = subprocess.run([enable_script], capture_output=True, text=True)
+        result = subprocess.run([enable_script, bundle_info["path"]], capture_output=True, text=True)
         if result.returncode != 0 and result.returncode != 100: # 100은 재시동 요청
             print(f"Failed to enable feature '{feature}'.")
             print("Enable script output:")
@@ -106,9 +114,9 @@ def enable_feature(feature: str, trigger_only: bool, one_way_enable: bool, exper
     else:
         print(f"Feature '{feature}' does not have an enable.sh script. Marking as enabled without running any script.")
     
-    libreg.write(f"HKEY_LOCAL_MACHINE/SYSTEM/Features/{feature}/Enabled", True)
+    libreg.write("root", f"HKEY_LOCAL_MACHINE/SYSTEM/Features/{feature}/Enabled", True)
 
-    if result.returncode == 100:
+    if result is not None and result.returncode == 100:
         print(f"Feature '{feature}' enabled successfully. Please restart your system to apply the changes.")
         # 환경 변수의 DISPLAY 값이 존재한다면 재시동을 요청하는 메시지를 zenity 로 띄운다.
         if "DISPLAY" in os.environ:
@@ -144,6 +152,7 @@ def disable_feature(feature: str, trigger_only: bool) -> bool:
         return True
 
     disable_script = os.path.join(bundle_info["path"], "disable.sh")
+    result = None
     if os.path.exists(disable_script):
         result = subprocess.run([disable_script], capture_output=True, text=True)
         if result.returncode != 0 and result.returncode != 100: # 100은 재시동 요청
@@ -155,9 +164,9 @@ def disable_feature(feature: str, trigger_only: bool) -> bool:
     else:
         print(f"Feature '{feature}' does not have a disable.sh script. Marking as disabled without running any script.")
     
-    libreg.write(f"HKEY_LOCAL_MACHINE/SYSTEM/Features/{feature}/Enabled", False)
+    libreg.write("root", f"HKEY_LOCAL_MACHINE/SYSTEM/Features/{feature}/Enabled", False)
 
-    if result.returncode == 100:
+    if result is not None and result.returncode == 100:
         print(f"Feature '{feature}' disabled successfully. Please restart your system to apply the changes.")
         # 환경 변수의 DISPLAY 값이 존재한다면 재시동을 요청하는 메시지를 zenity 로 띄운다.
         if "DISPLAY" in os.environ:
@@ -218,7 +227,7 @@ def main():
         
         feature_name = sys.argv[2]
         trigger_only = "--trigger-only" in sys.argv
-        disable_feature(feature_name)
+        disable_feature(feature_name, trigger_only)
 
     else:
         print(f"Unknown command '{command}'.")
