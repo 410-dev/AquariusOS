@@ -14,14 +14,21 @@ MOUNT_POINT="/tmp/btrfs_cleanup_root"
 IS_EFI=false
 if [[ -d "/sys/firmware/efi" ]]; then IS_EFI=true; fi
 
+if [[ ! -f "/var/log/aqua/snapshot-conversion-stage2.log" ]]; then
+    mkdir -p /var/log/aqua
+    touch /var/log/aqua/snapshot-conversion-stage2.log
+fi
+
 # --- Helper Functions ---
 log_step() {
     echo "[Step $1/$2] $3"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [Step $1/$2] $3" >> /var/log/aqua/snapshot-conversion-stage2.log
     if type STEP &>/dev/null; then STEP "$1" "$2" "[2/3] [$1/$2] $3"; fi
 }
 
 error_exit() {
     echo "ERROR: $1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1" >> /var/log/aqua/snapshot-conversion-stage2.log
     if type STEP &>/dev/null; then STEP "$2" "$3" "Error: $1"; fi
     sleep 3
     exit 1

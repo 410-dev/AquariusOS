@@ -20,7 +20,7 @@ if findmnt / | grep -q "overlay"; then
         --urgency=critical \
         --expire-time=0 \
         --icon=dialog-warning \
-        --app-name="AquariusOS Snapshot Support" \
+        --app-name="{{NAME}} Snapshot Support" \
         "⚠️ Sandbox Mode Active" \
         "You are in a volatile environment.\nChanges are written to RAM and will vanish on reboot."
     exit 0
@@ -37,7 +37,7 @@ if [[ "$CURRENT_SUBVOL" != "@" ]]; then
         --urgency=critical \
         --expire-time=0 \
         --icon=drive-multidisk \
-        --app-name="AquariusOS Snapshot Support" \
+        --app-name="{{NAME}} Snapshot Support" \
         "⚠️ Snapshot Boot Detected" \
         "You are currently running inside: $CURRENT_SUBVOL\n\nThis is NOT your main system."
 fi

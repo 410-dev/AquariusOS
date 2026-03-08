@@ -7,11 +7,13 @@ set -e
 apt install overlayroot -y
 
 # Add btrfs module to grub
-grub-install --modules=btrfs
+bootdev="$(ObjectiveShell CurrentMachine/Get-MountPointDevice /boot)"
+echo "Detected boot device: $bootdev"
+grub-install --modules=btrfs "$bootdev"
 
 # Copy current bundle patch/* to root
-cp -r "$1/patch"/* /
-ln -sf {{SYS_PYLIBS}}/libsnapshot.py /usr/lib/python3/dist-packages/libsnapshot.py
+#cp -r "$1/patch"/* /
+#ln -sf {{SYS_PYLIBS}}/libsnapshot.py /usr/lib/python3/dist-packages/libsnapshot.py
 
 # Set permission of stages
 # file is owned by root and not writable by group/others

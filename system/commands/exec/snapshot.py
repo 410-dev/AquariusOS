@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import argparse
-from libsnapshot import BtrfsSnapshotManager, SnapshotError
+from aqua.oscore.libsnapshot import BtrfsSnapshotManager, SnapshotError
 
 def main():
     parser = argparse.ArgumentParser(description="Btrfs Snapshot Manager (Python Refactor)")

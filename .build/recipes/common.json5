@@ -90,6 +90,7 @@
         "applications/user":          "/applications",
         "features":                   "/usr/share/aqua/features",
         "system/reg-templates":       "/usr/share/aqua/sys/templates/registry",
+        "system/xdg-autostart":       "/etc/xdg/autostart",
     },
 
     // 전처리기
