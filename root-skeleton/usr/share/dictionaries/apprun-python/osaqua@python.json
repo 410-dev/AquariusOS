@@ -1,0 +1,4 @@
+{
+    "aqualib-extensions": "{{OPT_LIBS}}/python",
+    "aqualib-core": "{{SYS_PYLIBS}}"
+}

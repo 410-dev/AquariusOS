@@ -39,7 +39,7 @@
         },
         "libs": {
             "display": "AppRun loadable Libraries",
-            "value": "com.aqua.common:com.aqua.sys:me.hysong.apprunutils",
+            "value": "aqualib-extensions:aqualib-core:me.hysong.apprunutils",
             "type": "str"
         },
         "requirements": {
