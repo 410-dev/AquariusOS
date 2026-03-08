@@ -26,7 +26,6 @@
     // 동적 변수
     "Variables": {
         "BUILD_DATE": { "$run": "date +%y%m.%d.%H%M%S" },
-        "VERSION":    { "$run": "date +%y%m.%d.%H%M" },
         "RUNNER":     { "$run": "whoami" },
 
         // Path 변수
