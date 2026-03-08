@@ -74,6 +74,7 @@
         "root-skeleton":              "/",
         "branding":                   "/",         // 에디션별 오버라이드
         "system/core":                "/usr/share/aqua/sys",
+        "system/commands/bin":       "/usr/bin",
         "system/commands/exec":       "/usr/share/aqua/sys/cmds",
         "system/commands/completions":"/usr/share/aqua/sys/completion-recipes",
         "system/services":            "/usr/share/aqua/sys/services",
