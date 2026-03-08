@@ -7,7 +7,7 @@ set -e
 apt install overlayroot -y
 
 # Add btrfs module to grub
-bootdev="$(ObjectiveShell CurrentMachine/Get-MountPointDevice /boot)"
+bootdev="$(ObjectiveShell CurrentMachine/Get-SystemDevice)"
 echo "Detected boot device: $bootdev"
 grub-install --modules=btrfs "$bootdev"
 
