@@ -27,6 +27,7 @@
     "Variables": {
         "BUILD_DATE": { "$run": "date +%y%m.%d.%H%M%S" },
         "RUNNER":     { "$run": "whoami" },
+        "NAME":       "AquariusOS",
 
         // Path 변수
         "CMDS":           "/usr/bin",
