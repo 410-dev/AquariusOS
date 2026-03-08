@@ -16,6 +16,7 @@ log_step() {
     # Usage: log_step <current> <total> <message>
     echo "[Step $1/$2] $3"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [Step $1/$2] $3" >> /var/log/snapshot_conversion.log
+    sync
     # Call original logging hook if it exists
     if type STEP &>/dev/null; then STEP "$1" "$2" "[1/3] [$1/$2] $3"; fi
 }
@@ -23,6 +24,7 @@ log_step() {
 error_exit() {
     echo "ERROR: $1"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1" >> /var/log/snapshot_conversion.log
+    sync
     # Call original logging hook if it exists
     if type STEP &>/dev/null; then STEP "$2" "$3" "Error: $1"; fi
     sleep 3

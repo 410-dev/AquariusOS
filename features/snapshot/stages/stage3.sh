@@ -10,6 +10,7 @@ fi
 log_step() {
     echo "[Step $1/$2] $3"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [Step $1/$2] $3" >> /var/log/aqua/snapshot-conversion-stage3.log
+    sync
     if type STEP &>/dev/null; then STEP "$1" "$2" "[3/3] [$1/$2] $3"; fi
 }
 

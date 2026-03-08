@@ -23,12 +23,14 @@ fi
 log_step() {
     echo "[Step $1/$2] $3"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [Step $1/$2] $3" >> /var/log/aqua/snapshot-conversion-stage2.log
+    sync
     if type STEP &>/dev/null; then STEP "$1" "$2" "[2/3] [$1/$2] $3"; fi
 }
 
 error_exit() {
     echo "ERROR: $1"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1" >> /var/log/aqua/snapshot-conversion-stage2.log
+    sync
     if type STEP &>/dev/null; then STEP "$2" "$3" "Error: $1"; fi
     sleep 3
     exit 1

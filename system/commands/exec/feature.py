@@ -113,8 +113,6 @@ def enable_feature(feature: str, trigger_only: bool, one_way_enable: bool, exper
             return False
     else:
         print(f"Feature '{feature}' does not have an enable.sh script. Marking as enabled without running any script.")
-    
-    libreg.write("root", f"HKEY_LOCAL_MACHINE/SYSTEM/Features/{feature}/Enabled", True)
 
     if result is not None and result.returncode == 100:
         print(f"Feature '{feature}' enabled successfully. Please restart your system to apply the changes.")
@@ -133,6 +131,8 @@ def enable_feature(feature: str, trigger_only: bool, one_way_enable: bool, exper
                 subprocess.run(["systemctl", "reboot"])
             else:
                 print("Please remember to restart your system later.")
+    else:
+        libreg.write("root", f"HKEY_LOCAL_MACHINE/SYSTEM/Features/{feature}/Enabled", True)
 
     return True
     
