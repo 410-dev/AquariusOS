@@ -12,6 +12,7 @@
         "EDITION_FILENAME": "osaqua-home",
         "PrettyName":       "AquariusOS Workstation",
         "CODENAME":         "Genesis",
+        "RELEASE_TYPE":     "Experimental",
         "VERSION":          { "$run": "date +%y%m.%d.%H%M" }
     },
 
