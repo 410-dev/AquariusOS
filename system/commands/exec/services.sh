@@ -45,7 +45,8 @@ esac
 #  1. {{SYS_SERVICES}}/<service_id>.apprun
 #  2. {{OPT_SERVICES}}/<service_id>.apprun
 
-DIRECTORIES=("{{SYS_SERVICES}}" "{{OPT_SERVICES}}")
+RAW_DIRECTORIES=("{{SYS_SERVICES}}" "{{OPT_SERVICES}}")
+DIRECTORIES=($(printf "%s\n" "${RAW_DIRECTORIES[@]}" | sort -u))
 if [ "$ACTION" == "list" ]; then
     for DIR in "${DIRECTORIES[@]}"; do
         if [ -d "$DIR" ]; then
