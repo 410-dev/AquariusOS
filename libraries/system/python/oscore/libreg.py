@@ -384,7 +384,7 @@ def write(
     # keyPath_implicit_path = registry_path.lstrip("/").replace("/", "<d>")
     keyPath_explicit_path = rel
     keyPath_implicit_path = registry_path.lstrip("/")
-    hook_path = "HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/"
+    hook_path = "HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/RegistryPropagator/ActionHooks/"
     hooks_explicit_path = read(f"{hook_path}/{keyPath_explicit_path}", default=[])
     hooks_implicit_path = read(f"{hook_path}/{keyPath_implicit_path}", default=[])
 

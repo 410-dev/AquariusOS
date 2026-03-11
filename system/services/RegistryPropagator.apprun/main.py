@@ -6,7 +6,7 @@ from oscore import libapplog as logger
 from nanodir.client import request as client_request
 
 # Reading hooks for registry propagation
-# HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/*
+# HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/RegistryPropagator/ActionHooks/*
 
 def main():
     return 0

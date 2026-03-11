@@ -1,6 +1,6 @@
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/nixshcompliance/Prober/opt-writable-bin:str={{CMDS}}
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/nixshcompliance/Prober/opt-writable-sbin:str={{CMDS}}
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/nixshcompliance/Prober/opt-writable-app:str={{USER_APPS}}
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/nixshcompliance/Prober/opt-system-bin:str={{SYS_CMDS}}
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/nixshcompliance/Prober/opt-system-sbin:str={{SYS_CMDS}}
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/nixshcompliance/Prober/opt-system-app:str={{SYS_APPS}}
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/nixshcompliance/Prober/opt-writable-bin:str={{CMDS}}
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/nixshcompliance/Prober/opt-writable-sbin:str={{CMDS}}
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/nixshcompliance/Prober/opt-writable-app:str={{USER_APPS}}
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/nixshcompliance/Prober/opt-system-bin:str={{SYS_CMDS}}
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/nixshcompliance/Prober/opt-system-sbin:str={{SYS_CMDS}}
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/nixshcompliance/Prober/opt-system-app:str={{SYS_APPS}}

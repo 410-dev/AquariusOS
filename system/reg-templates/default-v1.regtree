@@ -1,9 +1,9 @@
 ?HKEY_LOCAL_MACHINE/SYSTEM/LocalSettings/Graphics/Gnome/GraphicCode:str=aqua
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/RegistryPropagator/ActionHooks/SYSTEM/LocalSettings/Graphics/Gnome/GraphicCode:list={{SYS_FRAMEWORKS}}/RegSyncInstruct/sbin/gnome-update-wallpaper.sh {}
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/VFSGC/Latency:dword=60
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/VFSGC/TTL:dword=3600
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/VFSMK/SizeMB:dword=1024
-?HKEY_LOCAL_MACHINE/SYSTEM/Services/me.hysong.aqua/DirectoryMaker/SubStructure:list=features,homes,lib,logs,man,registry,share,sys,services
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/RegistryPropagator/ActionHooks/SYSTEM/LocalSettings/Graphics/Gnome/GraphicCode:list={{SYS_FRAMEWORKS}}/RegSyncInstruct/sbin/gnome-update-wallpaper.sh {}
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/VFSGC/Latency:dword=60
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/VFSGC/TTL:dword=3600
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/VFSMK/SizeMB:dword=1024
+?HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/DirectoryMaker/SubStructure:list=features,homes,lib,logs,man,registry,share,sys,services
 HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentBuild:str={{BUILD_DATE}}
 HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentVersion:str={{VERSION}}
 HKEY_LOCAL_MACHINE/SYSTEM/ControlSet/CurrentCodename:str={{CODENAME}}
