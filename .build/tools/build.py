@@ -580,6 +580,7 @@ def compose_maintainer_script(scope: str, distro: str, pswd: str, output: str, b
             with open(sfp, 'r') as infile:
                 content = infile.read()
             outfile.write(f"\n# Begin: {script}\n")
+            outfile.write(f"\necho Running {script}\n")
             lines = content.splitlines()
             for line in lines:
                 if line.startswith("#!"):
