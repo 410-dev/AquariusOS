@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Themeing should not break installation process
+set +e
+
 #graphic_code="{{CODENAME}}"
 graphic_code="aqua-simple"
 if mark_equals "AquariusOSSetupDone.GraphicCode.var" "$graphic_code" ; then
@@ -50,3 +53,7 @@ else
 
     mark "AquariusOSSetupDone.GraphicCode.var" "$graphic_code"
 fi
+
+# Errors ignored, switching back to strict mode
+set -e
+
