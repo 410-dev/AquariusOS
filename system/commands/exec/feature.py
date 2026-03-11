@@ -9,7 +9,7 @@ import os
 import sys
 import subprocess
 
-from aqua.oscore import libreg
+from oscore import libreg
 
 FEATURES_DIR = [
     "{{FEATURES}}"
