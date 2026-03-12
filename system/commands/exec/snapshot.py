@@ -8,8 +8,8 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
 
     # Command: create
-    parser_create = subparsers.add_parser("create", help="Create a new snapshot")
-    parser_create.add_argument("--mode", choices=["bootable", "integrity", "sandbox"], default="bootable", help="Snapshot mode")
+    parser_create = subparsers.add_parser("create", help="Create a new snapshot (Options: --name, --mode [bootable|integrity|sandbox])")
+    parser_create.add_argument("--mode", choices=["bootable", "integrity", "sandbox"], default="sandbox", help="Snapshot mode")
     parser_create.add_argument("--name", help="Optional label for the snapshot")
 
     # Command: list
