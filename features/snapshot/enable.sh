@@ -7,6 +7,7 @@ set -e
 apt install overlayroot -y
 
 # Add btrfs module to grub
+ObjectiveShell echo Preparation... # Simply not to be interrupted by the uv prep output
 bootdev="$(ObjectiveShell CurrentMachine/Get-SystemDevice)"
 echo "Detected boot device: $bootdev"
 grub-install --modules=btrfs "$bootdev"
