@@ -87,7 +87,7 @@ def enable_feature(feature: str, trigger_only: bool, one_way_enable: bool, exper
     if not skip_compatibility_check:
         compatibility_script = os.path.join(bundle_info["path"], "compatibility.sh")
         if os.path.exists(compatibility_script):
-            result = subprocess.run([compatibility_script], capture_output=True, text=True)
+            result = subprocess.run([compatibility_script])
             if result.returncode != 0:
                 print(f"Feature '{feature}' is not compatible with the current system.")
                 print("Compatibility check output:")
@@ -104,7 +104,7 @@ def enable_feature(feature: str, trigger_only: bool, one_way_enable: bool, exper
     enable_script = os.path.join(bundle_info["path"], "enable.sh")
     result = None
     if os.path.exists(enable_script):
-        result = subprocess.run([enable_script, bundle_info["path"]], capture_output=True, text=True)
+        result = subprocess.run([enable_script, bundle_info["path"]])
         if result.returncode != 0 and result.returncode != 100: # 100은 재시동 요청
             print(f"Failed to enable feature '{feature}'.")
             print("Enable script output:")
@@ -154,7 +154,7 @@ def disable_feature(feature: str, trigger_only: bool) -> bool:
     disable_script = os.path.join(bundle_info["path"], "disable.sh")
     result = None
     if os.path.exists(disable_script):
-        result = subprocess.run([disable_script], capture_output=True, text=True)
+        result = subprocess.run([disable_script])
         if result.returncode != 0 and result.returncode != 100: # 100은 재시동 요청
             print(f"Failed to disable feature '{feature}'.")
             print("Disable script output:")
