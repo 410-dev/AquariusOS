@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import json
 import sys
 import os
@@ -114,8 +116,6 @@ def compile_autocomplete(json_filepath, output_filepath):
     # Write the compiled script to the specified file
     with open(output_filepath, 'w') as f:
         f.write("\n".join(bash_script))
-
-    print(f"Compilation successful. Autocompletion script written to {output_filepath}")
 
 if __name__ == "__main__":
 
