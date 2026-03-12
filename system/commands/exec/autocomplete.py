@@ -35,6 +35,7 @@ def compile_autocomplete(json_filepath, output_filepath):
         "    local cur prev",
         '    cur="${COMP_WORDS[COMP_CWORD]}"',
         '    prev="${COMP_WORDS[COMP_CWORD-1]}"',
+        '    COMP_WORDBREAKS="${COMP_WORDBREAKS//:}"',
         "    local idx=$((COMP_CWORD - 1))",
         ""
     ]
