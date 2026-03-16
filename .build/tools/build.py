@@ -545,6 +545,71 @@ def build_submodules(cswd: str, config: dict, verbose: bool):
             else:
                 die(f"서브모듈 빌드 실패: {submodule_path}")
 
+    log_info("잔여 .nim 파일 검사 중...", indent=2)
+    build_remaining_nim_files(cswd, verbose)
+
+
+def build_remaining_nim_files(cswd: str, verbose: bool):
+    """
+    서브모듈 빌드 후 cswd 에 남아있는 .nim 파일을
+    같은 이름의 바이너리로 컴파일합니다.
+    """
+    for root, dirs, files in os.walk(cswd):
+        for file in files:
+            if not file.endswith(".nim"):
+                continue
+
+            nim_path    = os.path.join(root, file)
+            output_name = file[:-4]  # .nim 확장자 제거
+            output_bin  = os.path.join(root, output_name)
+
+            log_info(f"잔여 Nim 파일 빌드: {nim_path} → {output_name}", indent=4)
+
+            # .so.nim 이였다면 라이브러리로 컴파일
+            if output_name.endswith(".so"):
+                new_nim_name = output_name[:-3] + ".nim"  # crypto.so → crypto.nim
+                new_path = os.path.join(root, new_nim_name)
+                os.rename(nim_path, new_path)
+                build_arg = ["nim", "compile", "--opt:speed",
+                             "--out:" + output_name,  # 파일명만
+                             "--app:lib", new_nim_name]  # 파일명만
+            else:
+                build_arg = ["nim", "compile", "--opt:speed",
+                             "--out:" + output_name,  # 파일명만
+                             file]  # 파일명만
+                new_path = nim_path
+
+            log_verbose(f"빌드 명령: {' '.join(build_arg)}", verbose=verbose, indent=6)
+
+            result = subprocess.run(
+                build_arg,
+                cwd=root,
+                capture_output=not verbose
+            )
+
+            if result.returncode != 0:
+                if not verbose and result.stderr:
+                    print(result.stderr.decode() if isinstance(result.stderr, bytes) else result.stderr)
+                die(f"잔여 Nim 파일 빌드 실패: {nim_path}")
+
+            os.remove(new_path)  # 소스 파일 제거
+            os.chmod(output_bin, 0o755)
+            log_ok(f"완료: {output_bin}", indent=4)
+
+def install_nimbles(nimbles: list[str]):
+    # Run "nimble install xxx"
+    for nimble in nimbles:
+        log_info(f"Nimble 설치: {nimble}", indent=4)
+        result = subprocess.run(
+            ["nimble", "install", nimble],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode != 0:
+            die(f"Nimble 설치 실패: {nimble}\n  {result.stderr.strip()}")
+        log_ok(f"Nimble 설치 완료: {nimble}", indent=4)
+
+
 
 # ─────────────────────────────────────────────
 # 메인테이너 스크립트 조합
@@ -655,6 +720,8 @@ def build(config: dict, verbose: bool, dry_run: bool):
         ignore=make_ignore_func(source_exclude),
         dirs_exist_ok=True
     )
+    log_info(f"Nimble 준비", indent=2)
+    install_nimbles(config.get("Nimbles", []))
     log_ok("준비 완료", indent=2)
 
     # ── Step 2: 전처리기
