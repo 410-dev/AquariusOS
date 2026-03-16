@@ -25,7 +25,7 @@ if [[ ! -z "$(echo "$@" | grep \\--remove)" ]] ||                 # Removal
     # Install blacklist: HKEY_LOCAL_MACHINE/SOFTWARE/Policies/BlacklistedPackages/<package>.dword.rv = 1
 
     # Trigger python script to handle the logic
-    python3 {{SYS_FRAMEWORKS}}/GroupPolicyPropagationFramework/dpkg-wrapper/dpkgCmdParser.py "$@"
+    python3 {{SYS_FRAMEWORKS}}/GroupPolicy/dpkg/dpkgCmdParser.py "$@"
 
     # Check exit code
     if [ $? -ne 0 ]; then
