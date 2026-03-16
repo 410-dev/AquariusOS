@@ -2,10 +2,10 @@ import os, strutils
 
 proc printHelp() =
   echo """
-Nim String Replacer (Advanced)
+String Replacer (Advanced)
 ------------------------------
 Usage: 
-  ./filename <direction>:<count> offset:<index> <original> <search> <replace>
+  ./ReplaceString <direction>:<count> offset:<index> <original> <search> <replace>
 
 Arguments:
   1. direction:count   "fromBeginning" or "fromEnd" followed by count (0 for all).

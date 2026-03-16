@@ -16,7 +16,7 @@
         "index":  1,
         "param_name": "Offset and index",
         "action": "static-list",
-        "available": ["0:0"]
+        "available": ["offset:0"]
     },
     {
         "index": 2,
