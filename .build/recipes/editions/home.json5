@@ -18,8 +18,15 @@
 
     // 브랜딩은 에디션마다 다름
     "Mapping": {
-        "branding/common":       "/",
-        "package-meta/ubuntu": "/DEBIAN",
+        "branding/common":     "/",
+        "package-meta/ubuntu": "/DEBIAN"
+    },
+
+    // 디버깅 모드
+    "NimCompilerFlags": {
+        "Submodule": [],
+        "Library": [],
+        "SingleBinary": []
     },
 
     "Components": {
@@ -29,15 +36,15 @@
             "features/server",
             "features/file-exchange-server",
             "features/group-policy-propagation",
-            "frameworks/AdministrationControlEditor",
+            "frameworks/AdministrationControlEditor"
         ],
         // 기본값은 OFF, 여기 있는 것만 기본 ON
         "DefaultOn": [
-            "features/motd",
+            "features/motd"
         ]
     },
 
     "Output": {
-        "Filename": "osaqua-home",
+        "Filename": "osaqua-home"
     }
 }

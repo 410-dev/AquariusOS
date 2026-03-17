@@ -120,11 +120,14 @@
     ],
 
     // 빌드시 필요한 nimble 패키지
-    "Nimbles": [
-        "results",
-        "nimcrypto",
-        "uuids"
-    ],
+    "Nimbles": [],
+
+    // Nim 컴파일러 플래그
+    "NimCompilerFlags": {
+        "Submodule": ["-d:release", "--opt:speed", "-d:strip"],
+        "Library": ["-d:release", "--opt:speed", "-d:strip"],
+        "SingleBinary": ["-d:release", "--opt:speed", "-d:strip"]
+    },
 
     // 오류 무시
     "IgnoreErrors": {

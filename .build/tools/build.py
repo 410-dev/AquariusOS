@@ -99,12 +99,25 @@ def deep_merge(base: dict, override: dict, path: str = "") -> dict:
     두 딕셔너리를 딥 머지합니다.
     허용된 키(Mapping, Output.Filename) 외 충돌 시 빌드 실패.
     """
-    ALLOWED_OVERRIDE_KEYS = {"Mapping", "Output", "Variables", "Output"}
+    ALLOWED_OVERRIDE_KEYS = {"Mapping", "Output", "Variables", "Output", "NimCompilerFlags*", "NimCompilerFlags"}
+    # log_info(f"딥 머지: {path or 'root'} (허용 키값: {ALLOWED_OVERRIDE_KEYS}", indent=2)
+    # log_info(f"머지 중: {path or 'root'}", indent=2)
 
     result = dict(base)
     for key, value in override.items():
+        full_path = f"{path}.{key}"
+        if full_path.startswith("."):
+            full_path = full_path[1:]
         if key in result:
-            if key in ALLOWED_OVERRIDE_KEYS:
+            # 1. 키가 정확히 일치하거나
+            # 2. X.* 패턴에 해당하는 하위 키인지 검사합니다.
+            is_allowed = False
+            for ak in ALLOWED_OVERRIDE_KEYS:
+                if key.startswith(ak[:-1]) or key == ak or full_path.startswith(ak[:-1]): # KEY* or KEY detection
+                    is_allowed = True
+                    break
+
+            if is_allowed:
                 # 허용된 키는 재귀 머지
                 if isinstance(result[key], dict) and isinstance(value, dict):
                     result[key] = deep_merge(result[key], value, path + f".{key}")
@@ -112,7 +125,7 @@ def deep_merge(base: dict, override: dict, path: str = "") -> dict:
                     result[key] = value
             else:
                 die(
-                    f"레시피 충돌: '{path}.{key}' 키가 common 과 edition 양쪽에 존재합니다.\n"
+                    f"레시피 충돌: '{full_path}' 키가 common 과 edition 양쪽에 존재합니다.\n"
                     f"  공통과 에디션의 키셋은 반드시 분리되어야 합니다."
                 )
         else:
@@ -391,7 +404,7 @@ def run_preprocessor(cswd: str, config: dict, verbose: bool):
 # 서브모듈 빌드
 # ─────────────────────────────────────────────
 
-def build_nim_submodule(submodule_path: str, verbose: bool):
+def build_nim_submodule(submodule_path: str, verbose: bool, cmd: list[str]):
     """main.nim 이 있고 build.sh 가 없는 경우 nim 프로덕션 빌드를 수행합니다."""
     main_nim = os.path.join(submodule_path, "main.nim")
     if not os.path.exists(main_nim):
@@ -407,8 +420,10 @@ def build_nim_submodule(submodule_path: str, verbose: bool):
     output_bin = os.path.join(submodule_path, output_name)
 
     log_info(f"Nim 빌드: {main_nim} → {output_name}", indent=4)
+    cmd.extend([f"--out:{output_bin}", main_nim])
+    log_verbose(f"빌드 명령: {' '.join(cmd)}", indent=6)
     result = subprocess.run(
-        ["nim", "compile", "--opt:speed", "--out:" + output_bin, main_nim],
+        cmd,
         cwd=submodule_path,
         capture_output=not verbose
     )
@@ -466,6 +481,8 @@ def build_submodules(cswd: str, config: dict, verbose: bool):
     build_queue.extend(remaining)
 
     # 빌드 실행
+    nim_submodule_compiler_flag: list[str] = ["nim", "compile"]
+    nim_submodule_compiler_flag.extend(config.get("NimCompilerFlags", {}).get("Submodule", []))
     for submodule_path in build_queue:
         dir_name    = os.path.basename(submodule_path)
         has_main_nim = os.path.exists(os.path.join(submodule_path, "main.nim"))
@@ -476,7 +493,7 @@ def build_submodules(cswd: str, config: dict, verbose: bool):
         try:
             # Nim 서브모듈
             if has_main_nim and not has_build_sh and dir_name.endswith(".bin"):
-                build_nim_submodule(submodule_path, verbose)
+                build_nim_submodule(submodule_path, verbose, nim_submodule_compiler_flag)
                 continue
 
             # 일반 서브모듈 (build.sh + build.json)
@@ -546,14 +563,19 @@ def build_submodules(cswd: str, config: dict, verbose: bool):
                 die(f"서브모듈 빌드 실패: {submodule_path}")
 
     log_info("잔여 .nim 파일 검사 중...", indent=2)
-    build_remaining_nim_files(cswd, verbose)
+    build_remaining_nim_files(cswd, verbose, config.get("NimCompilerFlags", {}))
 
 
-def build_remaining_nim_files(cswd: str, verbose: bool):
+def build_remaining_nim_files(cswd: str, verbose: bool, compiler_flags: dict[str, list[str]]):
     """
     서브모듈 빌드 후 cswd 에 남아있는 .nim 파일을
     같은 이름의 바이너리로 컴파일합니다.
     """
+    lib_flags: list[str] = ["nim", "compile"]
+    lib_flags.extend(compiler_flags.get("Library", []))
+    single_bin_flags: list[str] = ["nim", "compile"]
+    single_bin_flags.extend(compiler_flags.get("SingleBinary", []))
+
     for root, dirs, files in os.walk(cswd):
         for file in files:
             if not file.endswith(".nim"):
@@ -570,11 +592,11 @@ def build_remaining_nim_files(cswd: str, verbose: bool):
                 new_nim_name = output_name[:-3] + ".nim"  # crypto.so → crypto.nim
                 new_path = os.path.join(root, new_nim_name)
                 os.rename(nim_path, new_path)
-                build_arg = ["nim", "compile", "--opt:speed",
+                build_arg = lib_flags + [
                              "--out:" + output_name,  # 파일명만
                              "--app:lib", new_nim_name]  # 파일명만
             else:
-                build_arg = ["nim", "compile", "--opt:speed",
+                build_arg = single_bin_flags + [
                              "--out:" + output_name,  # 파일명만
                              file]  # 파일명만
                 new_path = nim_path
@@ -598,17 +620,26 @@ def build_remaining_nim_files(cswd: str, verbose: bool):
 
 def install_nimbles(nimbles: list[str]):
     # Run "nimble install xxx"
-    for nimble in nimbles:
-        log_info(f"Nimble 설치: {nimble}", indent=4)
-        result = subprocess.run(
-            ["nimble", "install", nimble],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode != 0:
-            die(f"Nimble 설치 실패: {nimble}\n  {result.stderr.strip()}")
-        log_ok(f"Nimble 설치 완료: {nimble}", indent=4)
+    # for nimble in nimbles:
+    #     log_info(f"Nimble 설치: {nimble}", indent=4)
+    #     result = subprocess.run(
+    #         ["nimble", "install", nimble],
+    #         capture_output=True,
+    #         text=True
+    #     )
+    #     if result.returncode != 0:
+    #         die(f"Nimble 설치 실패: {nimble}\n  {result.stderr.strip()}")
+    #     log_ok(f"Nimble 설치 완료: {nimble}", indent=4)
 
+    log_info(f"Nimble 설치: {nimbles}", indent=4)
+    result = subprocess.run(
+        ["nimble", "install"] + nimbles,
+        capture_output=True,
+        text=True
+    )
+    if result.returncode != 0:
+        die(f"Nimble 설치 실패: {nimbles}\n  {result.stderr.strip()}")
+    log_ok(f"Nimble 설치 완료: {nimbles}", indent=4)
 
 
 # ─────────────────────────────────────────────
