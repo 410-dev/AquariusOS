@@ -1,4 +1,6 @@
 from collections import UserDict
+from oscore.libatomic import atomic_write
+from json import JSONDecodeError
 import json
 import os
 
@@ -38,8 +40,9 @@ class Config(UserDict):
 
         # 전역변수 초기화
         self.path: str = None
-        self.cascade_merge_priorities: list[str] = None
+        self.cascade_merge_priorities: list[str] | None = None
         self.cascade_merge_index: int = cascade_priority_write_index
+        self.io_mode: int = 0
         self.data: dict = {}
 
         # cascade 모드
@@ -61,9 +64,8 @@ class Config(UserDict):
                 self._log("Cascade merge mode enabled. Will merge configurations from all existing files in cascade_priorities.")
                 self.cascade_merge_priorities = cascade_priorities
 
-                # 실제 Implementation 치환
-                self.fetch = lambda: _fetch_cascade_merge(self)
-                self.sync = lambda: _sync_cascade_merge(self)
+                # Cascade Merge IO 모드로 전환
+                self.io_mode = 1
             
             # 일반 Cascade 모드
             else:
@@ -81,11 +83,9 @@ class Config(UserDict):
                     self._log(f"No config file found. Falling back to write index path: {default}")
                     self.path = default
                 
-                # 실제 Implementation 치환
+                # Cascade IO 모드로 전환 (General 과 동일)
                 # cascade 모드에서는 fetch() 와 sync() 가 일반 모드와 동일하게 동작하지만, path 가 cascade_priorities 에서 결정된다는 점이 다름
-                self.fetch = lambda: _fetch_general(self)
-                self.sync = lambda: _sync_general(self)
-            
+                # self.io_mode = 0 # 기본값과 동일하므로 assign 하지 않음
 
         # Cascade 모드가 아님
         else:
@@ -99,9 +99,8 @@ class Config(UserDict):
                 self._log("Using global settings.")
                 self.path = global_path
 
-            # 실제 Implementation 치환
-            self.fetch = lambda: _fetch_general(self)
-            self.sync = lambda: _sync_general(self)
+            # General IO 모드로 전환
+            # self.io_mode = 0 # 기본값과 동일하므로 assign 하지 않음
 
         self._log(f"Config path set to: {self.path}")
 
@@ -111,77 +110,93 @@ class Config(UserDict):
     
     # Fallback 용으로 노출
     def fetch(self) -> "Config":
-        try:
-            with open(self.path, "r") as f:
-                self.data = json.load(f)
-        except Exception as e:
-            self.data = {}
-        return self
+        if self.io_mode == 0: # General mode
+            return self._fetch_general()
+        elif self.io_mode == 1:
+            return self._fetch_cascade_merge()
+        else:
+            raise ValueError(f"Invalid value for io_mode: {self.io_mode}")
 
     # Fallback 용으로 노출
     def sync(self) -> bool:
-        try:
-            with open(self.path, "w") as f:
-                json.dump(self.data, f)
-                return True
-        except Exception as e:
-            return False
+        if self.io_mode == 0: # General mode
+            return self._sync_general()
+        elif self.io_mode == 1:
+            return self._sync_cascade_merge()
+        else:
+            raise ValueError(f"Invalid value for io_mode: {self.io_mode}")
 
     def to_str(self):
         return json.dumps(self.data, indent=4)\
-        
-# ====
-# 실제 fetch 구현
-# ====
-def _fetch_general(self) -> "Config":
-    try:
-        with open(self.path, "r") as f:
-            self.data = json.load(f)
-    except Exception as e:
-        self.data = {}
-    return self
 
 
-# 사실상 path 가 정해지기 때문에 일반 fetch 와 동일
-# 실제 클래스에서는 _fetch_general 을 fetch 로 노출
-# def _fetch_cascade(self) -> "Config":
-#     pass
 
-def _fetch_cascade_merge(self) -> "Config":
-    merged_data = {}
-    for priority in self.cascade_merge_priorities[::-1]: # 우선순위가 높은 파일이 나중에 덮어쓰도록 역순으로 처리
-        if os.path.isfile(priority):
-            try:
-                with open(priority, "r") as f:
-                    data = json.load(f)
-                    merged_data.update(data)
-            except Exception as e:
-                continue
-    self.data = merged_data
-    return self
+    # ====
+    # 실제 fetch 구현
+    # ====
+    def _fetch_general(self) -> "Config":
+        try:
+            with open(self.path, "r") as f:
+                self.data = json.load(f)
+        except FileNotFoundError as e:
+            self.data = {}
+        except JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON format in config file: {self.path}") from e
+        except IOError as e:
+            raise ValueError(f"IO error while loading config file: {self.path}") from e
+        return self
 
-# ====
-# 실제 sync 구현
-# ====
-def _sync_general(self) -> bool:
-    try:
-        with open(self.path, "w") as f:
-            json.dump(self.data, f, indent=4) # JSON 파일을 사람이 읽기 좋게 들여쓰기
+
+    # 사실상 path 가 정해지기 때문에 일반 fetch 와 동일
+    # 실제 클래스에서는 _fetch_general 을 fetch 로 노출
+    # def _fetch_cascade(self) -> "Config":
+    #     pass
+
+    def _fetch_cascade_merge(self) -> "Config":
+        merged_data = {}
+        for priority in self.cascade_merge_priorities[::-1]: # 우선순위가 높은 파일이 나중에 덮어쓰도록 역순으로 처리
+            if os.path.isfile(priority):
+                try:
+                    with open(priority, "r") as f:
+                        data = json.load(f)
+                        merged_data.update(data)
+                except JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON format in config file: {priority}") from e
+                except IOError as e:
+                    raise ValueError(f"IO error while loading config file: {priority}") from e
+        self.data = merged_data
+        return self
+
+    # ====
+    # 실제 sync 구현
+    # ====
+    def _sync_general(self) -> bool:
+        try:
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+            atomic_write(self.path, json.dumps(self.data, indent=4)) # JSON 파일을 사람이 읽기 좋게 들여쓰기
             return True
-    except Exception as e:
-        return False
-    
-# 사실상 path 가 정해지기 때문에 일반 sync 와 동일
-# 실제 클래스에서는 _sync_general 을 sync 로 노출
-# def _sync_cascade(self) -> bool:
-#     pass
+        except IOError as e:
+            raise IOError(f"IO error while saving config file: {self.path}") from e
 
-def _sync_cascade_merge(self) -> bool:
-    # cascade_merge 모드에서는 사용자가 정한 우선순위에 모두 쓰는 방식으로 구현
-    target_path = self.cascade_merge_priorities[self.cascade_merge_index]
-    try:
-        with open(target_path, "w") as f:
-            json.dump(self.data, f, indent=4) # JSON 파일을 사람이 읽기 좋게 들여쓰기
+        except TypeError as e:
+            raise ValueError(f"Invalid JSON format in configuration data: {self.path}") from e
+
+
+    # 사실상 path 가 정해지기 때문에 일반 sync 와 동일
+    # 실제 클래스에서는 _sync_general 을 sync 로 노출
+    # def _sync_cascade(self) -> bool:
+    #     pass
+
+    def _sync_cascade_merge(self) -> bool:
+        # cascade_merge 모드에서는 사용자가 정한 우선순위에 모두 쓰는 방식으로 구현
+        target_path: str = self.cascade_merge_priorities[self.cascade_merge_index]
+        try:
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            atomic_write(target_path, json.dumps(self.data, indent=4)) # JSON 파일을 사람이 읽기 좋게 들여쓰기
             return True
-    except Exception as e:
-        return False
+        except IOError as e:
+            raise IOError(f"IO error while saving config file: {target_path}") from e
+
+        except TypeError as e:
+            raise ValueError(f"Invalid JSON format in configuration data: {target_path}") from e
+
