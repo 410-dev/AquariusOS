@@ -1,0 +1,13 @@
+requests
+urllib3
+cryptography
+fastapi
+uvicorn
+cryptography
+websocket
+websocket-client
+pydantic
+sqlalchemy
+pyotp
+cbor2
+datetime
