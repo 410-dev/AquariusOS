@@ -1,12 +1,10 @@
-# tests/libraries/system/python/test_libreg.py
 import os
 import sys
 import pytest
 import tempfile
 import shutil
 
-sys.path.insert(0, "libraries/system/python")
-import libreg
+import oscore.libreg as libreg
 
 
 # ─────────────────────────────────────────────

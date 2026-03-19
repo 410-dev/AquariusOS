@@ -2,15 +2,16 @@
 """
 AquariusOS 프로젝트 테스트 러너
 사용법:
-  python run_tests.py                          # 전체 테스트
-  python run_tests.py path/to/dir             # 특정 디렉터리만
-  python run_tests.py --recipe common.json    # 레시피 지정
-  python run_tests.py --filter hello          # 파일명 필터
-  python run_tests.py -v                      # pytest verbose
+  python run_tests.py                           # 전체 테스트 (edition 자동 선택)
+  python run_tests.py path/to/dir              # 특정 디렉터리만
+  python run_tests.py --edition home           # edition 지정
+  python run_tests.py --filter hello           # 파일명 필터
+  python run_tests.py --keep-tmp -v            # 임시파일 유지 + verbose
 """
 
 import argparse
 import json
+import json5
 import os
 import re
 import shutil
@@ -24,48 +25,89 @@ from pathlib import Path
 # 1. 레시피 파싱 및 변수 추출
 # ─────────────────────────────────────────
 
-def load_recipe(project_root: Path, edition: str) -> dict[str, str]:
+def find_project_root(start: Path) -> Path:
     """
-    common.json 을 읽고, edition.json 이 있으면 덮어씌워
-    최종 Variables 딕셔너리를 반환합니다.
-    $run 값은 무시하고 문자열 값만 추출합니다.
+    start 부터 상위로 올라가며 .build/recipe/common.json5 이 있는
+    디렉터리를 찾습니다. 없으면 start 를 반환합니다.
     """
-    variables: dict[str, str] = {}
+    current = start
+    while True:
+        if (current / ".build" / "recipe" / "common.json5").exists():
+            return current
+        parent = current.parent
+        if parent == current:
+            return start
+        current = parent
 
-    def extract_vars(recipe_path: Path) -> dict[str, str]:
-        if not recipe_path.exists():
-            return {}
-        text = strip_js_comments(recipe_path.read_text(encoding="utf-8"))
-        data = json.loads(text)
-        result = {}
-        for k, v in data.get("Variables", {}).items():
-            # { "$run": "..." } 형태는 건너뜀
-            if isinstance(v, str):
-                result[k] = v
-        return result
 
-    # common.json 로드
-    common = project_root / ".build/recipes/common.json"
-    variables.update(extract_vars(common))
-
-    # edition.json 이 있으면 덮어씌움
-    edition = project_root / f".build/recipes/edition/{edition}.json"
-    variables.update(extract_vars(edition))
-
-    return variables
+def find_editions(recipe_dir: Path) -> list[str]:
+    """
+    recipe 디렉터리 내에서 common.json5 을 제외한 .json5 파일들을
+    edition 이름(확장자 제거) 목록으로 반환합니다.
+    """
+    return [
+        p.stem
+        for p in sorted(recipe_dir.glob("*.json5"))
+        if p.name != "common.json5"
+    ]
 
 
 def strip_js_comments(text: str) -> str:
-    """JSON 파일 내의 // 주석을 제거합니다."""
+    """JSON 파일 내의 // 주석과 후행 쉼표를 제거합니다."""
     lines = []
     for line in text.splitlines():
-        # 문자열 밖의 // 주석 제거 (간단한 휴리스틱)
         stripped = re.sub(r'(?<!:)//.*$', '', line)
         lines.append(stripped)
-    # 후행 쉼표 제거 (JSON 비호환)
     result = '\n'.join(lines)
     result = re.sub(r',\s*([\]}])', r'\1', result)
     return result
+
+
+def extract_variables(recipe_path: Path) -> dict[str, str]:
+    """레시피 파일에서 문자열 Variables 만 추출합니다. $run 은 건너뜁니다."""
+    if not recipe_path.exists():
+        return {}
+    data = json5.loads(recipe_path.read_text(encoding="utf-8"))
+    return {
+        k: v
+        for k, v in data.get("Variables", {}).items()
+        if isinstance(v, str)
+    }
+
+def load_recipe(project_root: Path, edition: str | None) -> tuple[dict[str, str], str | None]:
+    """
+    common.json5 을 로드하고, edition 이 지정되었으면 덮어씌웁니다.
+    edition 이 None 이면 recipe 디렉터리 내 첫 번째 edition 을 자동 선택합니다.
+    (edition 이 아예 없어도 common 만으로 동작합니다.)
+
+    반환: (variables 딕셔너리, 실제 사용된 edition 이름 또는 None)
+    """
+    recipe_dir = project_root / ".build" / "recipes"
+    variables: dict[str, str] = {}
+
+    # common.json5 로드
+    common_path = recipe_dir / "common.json5"
+    variables.update(extract_variables(common_path))
+
+    # edition 결정
+    used_edition: str | None = None
+    if edition:
+        edition_path = recipe_dir / "editions" / f"{edition}.json5"
+        if not edition_path.exists():
+            print(f"⚠️  edition 파일을 찾을 수 없습니다: {edition_path}")
+        else:
+            variables.update(extract_variables(edition_path))
+            used_edition = edition
+    else:
+        available = find_editions(recipe_dir)
+        if available:
+            used_edition = available[0]
+            variables.update(extract_variables(recipe_dir / f"{used_edition}.json5"))
+            if len(available) > 1:
+                print(f"ℹ️  여러 edition 발견: {available} → '{used_edition}' 사용")
+                print(f"   다른 edition 을 쓰려면 --edition <name> 을 지정하세요.")
+
+    return variables, used_edition
 
 
 # ─────────────────────────────────────────
@@ -86,79 +128,83 @@ def apply_substitutions(text: str, variables: dict[str, str]) -> str:
 
 def find_test_files(search_root: Path, name_filter: str | None = None) -> list[Path]:
     """
-    search_root 하위를 재귀 탐색하여 *.test.py 파일 목록을 반환합니다.
-    name_filter 가 지정되면 파일 스텀(stem)에 해당 문자열이 포함된 것만 반환합니다.
+    search_root 하위를 재귀 탐색하여 *_test.py 파일 목록을 반환합니다.
+    name_filter 가 지정되면 파일명에 해당 문자열이 포함된 것만 반환합니다.
     """
-    test_files = []
-    for path in sorted(search_root.rglob("*.test.py")):
-        if name_filter and name_filter not in path.name:
-            continue
-        test_files.append(path)
-    return test_files
+    # return [
+    #     p for p in sorted(search_root.rglob("*_test.py"))
+    #     if name_filter is None or name_filter in p.name
+    # ]
+
+    # .venv 는 탐색 범위에서 제외
+    return [
+        p for p in sorted(search_root.rglob("*_test.py"))
+        if ".venv" not in p.parts and (name_filter is None or name_filter in p.name)
+    ]
 
 
 # ─────────────────────────────────────────
-# 4. conftest.py 생성 (sys.path 주입용)
+# 4. conftest.py 자동 생성
 # ─────────────────────────────────────────
 
 CONFTEST_TEMPLATE = '''\
 # Auto-generated by run_tests.py — do not edit
 import sys
-import os
 
-# libraries/system/python 을 sys.path 에 추가
+# libraries/system/python → sys.path
 _PYLIB = {pylib_path!r}
 if _PYLIB not in sys.path:
     sys.path.insert(0, _PYLIB)
 
-# 프로젝트 루트도 추가
+# 프로젝트 루트 → sys.path
 _ROOT = {project_root!r}
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 '''
 
-
 def write_conftest(tmp_dir: Path, project_root: Path) -> None:
     pylib_path = str(project_root / "libraries" / "system" / "python")
-    conftest = CONFTEST_TEMPLATE.format(
+    content = CONFTEST_TEMPLATE.format(
         pylib_path=pylib_path,
         project_root=str(project_root),
     )
-    (tmp_dir / "conftest.py").write_text(conftest, encoding="utf-8")
+    (tmp_dir / "conftest.py").write_text(content, encoding="utf-8")
 
 
 # ─────────────────────────────────────────
-# 5. 임시 디렉터리에 치환된 테스트 파일 준비
+# 5. 임시 디렉터리에 치환된 파일 준비
 # ─────────────────────────────────────────
 
 def prepare_test_file(
-    original: Path,
+    test_file: Path,
     tmp_dir: Path,
     variables: dict[str, str],
     project_root: Path,
 ) -> Path:
     """
-    테스트 파일과 그에 대응하는 원본 파일을 임시 디렉터리에 복사하고
-    {{VAR}} 치환을 적용합니다. 원본 파일(hello.py)도 함께 복사합니다.
-    """
-    # 원본 파일 경로: hello.test.py → hello.py
-    source_file = original.with_name(
-        original.name.replace(".test.py", ".py")
-    )
+    *_test.py 파일과 그에 대응하는 원본 파일(*_test.py → *.py)을
+    임시 디렉터리에 복사하고 {{VAR}} 치환을 적용합니다.
 
-    # tmp 안에서 프로젝트 루트 기준 상대 경로를 유지
-    rel = original.relative_to(project_root)
+    예: system/commands/bin/hello_test.py
+          → tmp/.../system/commands/bin/hello_test.py  (치환 적용)
+        system/commands/bin/hello.py
+          → tmp/.../system/commands/bin/hello.py       (치환 적용)
+    """
+    # _test.py → .py (원본 파일 이름 추론)
+    source_name = test_file.name.replace("_test.py", ".py")
+    source_file = test_file.with_name(source_name)
+
+    rel = test_file.relative_to(project_root)
     dest = tmp_dir / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     # 테스트 파일 복사 + 치환
-    content = original.read_text(encoding="utf-8")
+    content = test_file.read_text(encoding="utf-8")
     dest.write_text(apply_substitutions(content, variables), encoding="utf-8")
 
     # 원본 .py 파일도 있으면 복사 + 치환
     if source_file.exists():
-        src_rel = source_file.relative_to(project_root)
-        src_dest = tmp_dir / src_rel
+        src_dest = tmp_dir / source_file.relative_to(project_root)
         src_dest.parent.mkdir(parents=True, exist_ok=True)
         src_content = source_file.read_text(encoding="utf-8")
         src_dest.write_text(apply_substitutions(src_content, variables), encoding="utf-8")
@@ -170,14 +216,13 @@ def prepare_test_file(
 # 6. pytest 실행
 # ─────────────────────────────────────────
 
-def run_pytest(test_files: list[Path], extra_args: list[str]) -> int:
+def run_pytest(test_files: list[Path], pytest_extra: list[str]) -> int:
     """pytest 를 subprocess 로 실행하고 종료 코드를 반환합니다."""
-    cmd = [sys.executable, "-m", "pytest"] + extra_args + [str(f) for f in test_files]
-    print(f"\n{'─'*60}")
+    cmd = [sys.executable, "-m", "pytest"] + pytest_extra + [str(f) for f in test_files]
+    print(f"\n{'─' * 60}")
     print(f"  실행: {' '.join(cmd)}")
-    print(f"{'─'*60}\n")
-    result = subprocess.run(cmd)
-    return result.returncode
+    print(f"{'─' * 60}\n")
+    return subprocess.run(cmd).returncode
 
 
 # ─────────────────────────────────────────
@@ -195,68 +240,72 @@ def main() -> None:
         help="테스트를 탐색할 디렉터리 (기본값: 현재 디렉터리)",
     )
     parser.add_argument(
-        "edition",
-        default="home",
-        required=True,
-        help="테스트 할 에디션"
-    )
-    parser.add_argument(
-        "--recipe",
+        "--edition", "-e",
         default=None,
-        help="common.json 이 위치한 프로젝트 루트 경로 (기본값: search_dir 에서 자동 탐색)",
+        help="사용할 edition 이름 (예: home, enterprise). 미지정시 자동 선택.",
     )
     parser.add_argument(
         "--filter", "-f",
         default=None,
         dest="name_filter",
-        help="파일명 필터 (예: --filter hello → hello.test.py 만 실행)",
+        help="파일명 필터 (예: --filter hello → hello_test.py 만 실행)",
     )
     parser.add_argument(
         "--keep-tmp",
         action="store_true",
         help="테스트 후 임시 디렉터리를 삭제하지 않음 (디버깅용)",
     )
-    # 나머지는 pytest 로 그대로 전달 (-v, -x, -k ... 등)
+    parser.add_argument(
+        "--list", "-l",
+        action="store_true",
+        help="테스트 파일 목록만 출력하고 실행하지 않음",
+    )
+    # 나머지 인자는 pytest 로 그대로 전달 (-v, -x, -k, --tb=short 등)
     args, pytest_extra = parser.parse_known_args()
 
-    project_root = Path(args.recipe).resolve() if args.recipe else find_project_root(Path(args.search_dir).resolve())
+    project_root = find_project_root(Path(args.search_dir).resolve())
     search_root  = Path(args.search_dir).resolve()
 
     print(f"프로젝트 루트 : {project_root}")
     print(f"탐색 경로     : {search_root}")
 
     # ── 레시피 로드 ──
-    variables = load_recipe(project_root, args.edition)
+    variables, used_edition = load_recipe(project_root, args.edition)
     if variables:
-        print(f"변수 로드     : {len(variables)}개")
+        edition_label = used_edition or "(common only)"
+        print(f"레시피 edition: {edition_label}  ({len(variables)}개 변수)")
     else:
-        print("⚠️  common.json 을 찾지 못했습니다. 치환 없이 진행합니다.")
+        print("⚠️  레시피를 찾지 못했습니다. 치환 없이 진행합니다.")
 
     # ── 테스트 파일 탐색 ──
     test_files = find_test_files(search_root, args.name_filter)
     if not test_files:
-        print("\n테스트 파일을 찾지 못했습니다.")
+        print("\n테스트 파일을 찾지 못했습니다 (*_test.py).")
         sys.exit(0)
 
     print(f"발견된 테스트 : {len(test_files)}개")
     for f in test_files:
-        print(f"  • {f.relative_to(project_root)}")
+        try:
+            label = f.relative_to(project_root)
+        except ValueError:
+            label = f
+        print(f"  • {label}")
+
+    if args.list:
+        sys.exit(0)
 
     # ── 임시 디렉터리 구성 ──
     tmp_dir = Path(tempfile.mkdtemp(prefix="aq_test_"))
     print(f"\n임시 디렉터리 : {tmp_dir}")
 
+    exit_code = 0
     try:
         write_conftest(tmp_dir, project_root)
-
-        prepared = []
-        for tf in test_files:
-            dest = prepare_test_file(tf, tmp_dir, variables, project_root)
-            prepared.append(dest)
-
-        # ── pytest 실행 ──
+        prepared = [
+            prepare_test_file(tf, tmp_dir, variables, project_root)
+            for tf in test_files
+        ]
         exit_code = run_pytest(prepared, pytest_extra)
-
     finally:
         if args.keep_tmp:
             print(f"\n임시 디렉터리 유지: {tmp_dir}")
@@ -264,21 +313,6 @@ def main() -> None:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
     sys.exit(exit_code)
-
-
-def find_project_root(start: Path) -> Path:
-    """
-    start 부터 상위로 올라가며 common.json 이 있는 디렉터리를 찾습니다.
-    없으면 start 를 그대로 반환합니다.
-    """
-    current = start
-    while True:
-        if (current / "common.json").exists():
-            return current
-        parent = current.parent
-        if parent == current:
-            return start
-        current = parent
 
 
 if __name__ == "__main__":

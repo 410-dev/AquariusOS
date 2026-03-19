@@ -1,3 +1,6 @@
+from oscore.libfchecksum import file_checksum, file_matches
+import hashlib
+
 def test_file_checksum(tmp_path):
     f = tmp_path / "test.txt"
     f.write_bytes(b"hello world")

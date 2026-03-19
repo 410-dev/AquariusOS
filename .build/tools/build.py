@@ -692,10 +692,18 @@ def compose_maintainer_script(scope: str, distro: str, pswd: str, output: str, b
     os.chmod(out_path, 0o755)
     shutil.rmtree(out_path + ".d", ignore_errors=True)
 
-
 # ─────────────────────────────────────────────
 # 빌드 메인
 # ─────────────────────────────────────────────
+
+def delete_tests(cswd: str):
+    # Recursively delete *_test.py
+    for root, dirs, files in os.walk(cswd):
+        for file in files:
+            if file.endswith("_test.py"):
+                fp = os.path.join(root, file)
+                os.remove(fp)
+                log_verbose(f"테스트 파일 삭제: {fp}", verbose=True, indent=4)
 
 def make_ignore_func(exclude_list: list[str]):
     """점(.)으로 시작하는 파일/디렉토리와 exclude_list 를 모두 무시합니다."""
@@ -759,6 +767,9 @@ def build(config: dict, verbose: bool, dry_run: bool):
     log_info(f"Nimble 준비", indent=2)
     install_nimbles(config.get("Nimbles", []))
     log_ok("준비 완료", indent=2)
+    log_info(f"테스트 파일 삭제", indent=2)
+    delete_tests(cswd)
+    log_ok("테스트 파일 삭제 완료", indent=2)
 
     # ── Step 2: 전처리기
     log_step(2, TOTAL_STEPS, "전처리기 실행")
