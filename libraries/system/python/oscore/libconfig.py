@@ -3,10 +3,11 @@ from oscore.libatomic import atomic_write
 from json import JSONDecodeError
 import json
 import os
+import subprocess
 
 class Config(UserDict):
 
-    def __init__(self, path: str, user_local: bool = False, cascade_merge_mode: bool = False, cascade: bool = False, cascade_priorities: list[str] = None, cascade_priority_write_index: int = 0, logging: bool = False):
+    def __init__(self, path: str, enforce_global: bool = False, cascade_merge_mode: bool = False, cascade: bool = False, cascade_priorities: list[str] = None, cascade_priority_write_index: int = 0, logging: bool = False, resolve_pattern: bool = True):
         super().__init__()
 
         # 처음 설정시에 로깅 함수를 설정함으로서 읽기쓰기 오버헤드의 분기문을 줄임
@@ -34,9 +35,9 @@ class Config(UserDict):
             self._log("cascade_merge_mode is True but cascade is False. Enabling cascade mode.")
             cascade = True
         
-        # user_local은 cascade가 True일 수 없음
-        if user_local and cascade:
-            raise ValueError("user_local cannot be True if cascade (or cascade_merge_mode) is True")
+        # enforce_global은 cascade가 True일 수 없음
+        if enforce_global and cascade:
+            raise ValueError("enforce_global cannot be True if cascade (or cascade_merge_mode) is True")
 
         # 전역변수 초기화
         self.path: str = None
@@ -44,6 +45,8 @@ class Config(UserDict):
         self.cascade_merge_index: int = cascade_priority_write_index
         self.io_mode: int = 0
         self.data: dict = {}
+        self.links: dict = {}
+        self.resolve_pattern: bool = resolve_pattern
 
         # cascade 모드
         if cascade:
@@ -91,8 +94,8 @@ class Config(UserDict):
         else:
             self._log("Cascade mode disabled.")
 
-            # user_local이 True이면 홈 디렉토리를 사용하고, 그렇지 않으면 /etc/를 사용
-            if user_local:
+            # enforce_global이 False이면 홈 디렉토리를 사용하고, 그렇지 않으면 /etc/를 사용
+            if not enforce_global:
                 self._log("Using user local settings.")
                 self.path = home_path
             else:
@@ -111,11 +114,19 @@ class Config(UserDict):
     # Fallback 용으로 노출
     def fetch(self) -> "Config":
         if self.io_mode == 0: # General mode
-            return self._fetch_general()
+            self._fetch_general()
         elif self.io_mode == 1:
-            return self._fetch_cascade_merge()
+            self._fetch_cascade_merge()
         else:
             raise ValueError(f"Invalid value for io_mode: {self.io_mode}")
+
+        # 만약 self.resolve_pattern 이 True 일 경우, data 내 _links 를 links 로 뺀다
+        if self.resolve_pattern:
+            links = self.data.pop("_links", {})
+            if isinstance(links, dict):
+                self.links = links
+
+        return self
 
     # Fallback 용으로 노출
     def sync(self) -> bool:
@@ -127,8 +138,86 @@ class Config(UserDict):
             raise ValueError(f"Invalid value for io_mode: {self.io_mode}")
 
     def to_str(self):
-        return json.dumps(self.data, indent=4)\
+        dump_data = self.data.copy()
+        if self.resolve_pattern and self.links:
+            dump_data["_links"] = self.links
+        return json.dumps(dump_data, indent=4)
 
+
+    def _read_linked_file(self, key):
+        # 내부적으로 링크된 파일을 읽어오는 공통 로직
+        link_path = self.links[key]
+        try:
+            with open(link_path, "r") as f:
+                if link_path.endswith(".json"):
+                    return json.load(f)
+                else:
+                    return f.read().strip()
+        except FileNotFoundError:
+            raise
+        except JSONDecodeError:
+            raise ValueError(f"Invalid JSON format in linked config file: {link_path}")
+        except IOError as e:
+            raise ValueError(f"IO error while loading linked config file: {link_path}") from e
+
+
+    # 오버라이드된 get 메서드로, dict.get() 을 그대로 호출하여 기본값 지원
+    def get(self, key, default=None):
+        if self.resolve_pattern and key in self.links:
+            try:
+                return self._read_linked_file(key)
+            except FileNotFoundError:
+                return default  # 파일이 없으면 기본값 반환
+        # links 에 키가 없으면 일반적으로 self.data 에서 찾음
+        return self.data.get(key, default)
+
+    # 오버라이드 된 __get___ 메서드
+    def __getitem__(self, key):
+        if self.resolve_pattern and key in self.links:
+            try:
+                return self._read_linked_file(key)
+            except FileNotFoundError:
+                raise KeyError(key)  # 파일이 없으면 딕셔너리 표준 에러 발생
+
+        return self.data[key]  # self.data에 키가 없으면 여기서 자연스럽게 KeyError가 발생함
+
+    # 오버라이드 된 set 메서드로, dict[key] = value 형태로도 설정할 수 있도록 함
+    def __setitem__(self, key, value):
+        if self.resolve_pattern and key in self.links:
+            link_path = self.links[key]
+            if f"{key}:set" in self.links: # 설정하는 셸 명령어
+                try:
+                    set_cmd: list[str] = self.links[f"{key}:set"].copy()
+
+                    old_val = str(self.get(key, ""))
+                    new_val = str(value)
+
+                    # {new} 와 {old} 치환
+                    for i, e in enumerate(set_cmd):
+                        set_cmd[i] = e.replace("{new}", new_val).replace("{old}", old_val)
+
+                    # check=True 를 통해 명령어 실패 시 CalledProcessError 발생 유도
+                    subprocess.run(set_cmd, shell=False, check=True)
+
+                except subprocess.CalledProcessError as e:
+                    # 프로세스가 0이 아닌 에러 코드를 반환하며 실패한 경우
+                    raise ValueError(f"Command failed with exit code {e.returncode} for key: {key}") from e
+                except FileNotFoundError as e:
+                    # 실행할 명령어 파일 자체를 시스템에서 찾을 수 없는 경우
+                    raise ValueError(f"Command not found while executing set command for key: {key}") from e
+            else:
+                try:
+                    os.makedirs(os.path.dirname(link_path), exist_ok=True)
+                    if link_path.endswith(".json"):
+                        atomic_write(link_path, json.dumps(value, indent=4))
+                    else:
+                        atomic_write(link_path, str(value))
+                except IOError as e:
+                    raise ValueError(f"IO error while saving linked config file: {link_path}") from e
+                except TypeError as e:
+                    raise ValueError(f"Invalid JSON format in configuration data for linked file: {link_path}") from e
+        else:
+            self.data[key] = value
 
 
     # ====
@@ -173,7 +262,10 @@ class Config(UserDict):
     def _sync_general(self) -> bool:
         try:
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
-            atomic_write(self.path, json.dumps(self.data, indent=4)) # JSON 파일을 사람이 읽기 좋게 들여쓰기
+            dump_data = self.data.copy()
+            if self.resolve_pattern and self.links:
+                dump_data["_links"] = self.links
+            atomic_write(self.path, json.dumps(dump_data, indent=4)) # JSON 파일을 사람이 읽기 좋게 들여쓰기
             return True
         except IOError as e:
             raise IOError(f"IO error while saving config file: {self.path}") from e
@@ -192,7 +284,10 @@ class Config(UserDict):
         target_path: str = self.cascade_merge_priorities[self.cascade_merge_index]
         try:
             os.makedirs(os.path.dirname(target_path), exist_ok=True)
-            atomic_write(target_path, json.dumps(self.data, indent=4)) # JSON 파일을 사람이 읽기 좋게 들여쓰기
+            dump_data = self.data.copy()
+            if self.resolve_pattern and self.links:
+                dump_data["_links"] = self.links
+            atomic_write(target_path, json.dumps(dump_data, indent=4)) # JSON 파일을 사람이 읽기 좋게 들여쓰기
             return True
         except IOError as e:
             raise IOError(f"IO error while saving config file: {target_path}") from e
