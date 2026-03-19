@@ -4,3 +4,5 @@
 .venv/
 *.local*
 *.idea/*
+*.pyc
+*__pycache__/*
