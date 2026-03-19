@@ -632,6 +632,11 @@ def install_nimbles(nimbles: list[str]):
     #     log_ok(f"Nimble 설치 완료: {nimble}", indent=4)
 
     log_info(f"Nimble 설치: {nimbles}", indent=4)
+    if not nimbles:
+        log_ok("Nimble 설치할 패키지가 없습니다.", indent=4)
+        return
+
+
     result = subprocess.run(
         ["nimble", "install"] + nimbles,
         capture_output=True,
