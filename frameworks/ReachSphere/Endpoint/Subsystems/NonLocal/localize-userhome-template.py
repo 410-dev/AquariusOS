@@ -5,6 +5,7 @@ import sys
 import json
 
 from oscore.libatomic import atomic_write
+from oscore.libfchecksum import bytes_matches
 
 def main():
     # 파라미터 확인
@@ -69,14 +70,27 @@ def main():
         os.makedirs(target_dir, exist_ok=True)
         os.chown(target_dir, uid, gid)  # 폴더 소유권 변경
 
-        # 파일 생성
+        # 파일 생성 및 다운로드
+        e_type = content.get("type", "tinytext")
+        e_content = content.get("content", "")
+        e_checksum = content.get("checksum", "")
 
-
-            with open(target_path, "w") as f:
-                f.write(content)
-            os.chown(target_path, uid, gid)  # 파일 소유권 변경
-            logger.debug(f"Created file {target_path} with content from payload and changed ownership to {pam_user}")
-
+        if e_type == "tinytext":
+            atomic_write(path, e_content)
+            os.chown(path, uid, gid)  # 파일 소유권 변경
+            print(f"Created file {path} with content from payload and changed ownership to {username} (uid={uid}, gid={gid})")
+        elif e_type == "cloudfile":
+            response = requests.get(e_content)
+            if response.status_code == 200:
+                content_bytes = response.content
+                if e_checksum and not bytes_matches(content_bytes, e_checksum):
+                    print(f"Checksum mismatch for {file_path}, skipping")
+                    continue
+                atomic_write(path, content_bytes)
+                os.chown(path, uid, gid)  # 파일 소유권 변경
+                print(f"Downloaded cloud file from {e_content} to {path} and changed ownership to {username} (uid={uid}, gid={gid})")
+            else:
+                print(f"Failed to download cloud file from {e_content}, status code: {response.status_code}")
 
 def _write_tinytext(element: dict[str, str], path: str, writer = atomic_write):
     content: str = element["content"]
