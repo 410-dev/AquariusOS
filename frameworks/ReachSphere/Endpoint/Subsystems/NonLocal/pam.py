@@ -14,7 +14,8 @@ from oscore.liblog import Logger
 from oscore.libatomic import atomic_write
 
 endpoint_cfg: Config = Config("ReachSphere/Endpoint/endpoints", enforce_global=True).fetch()
-general_cfg: Config = Config("Aqua/System", enforce_global=True).fetch() # MachineName 읽어오기 위함
+rs_user_cfg: Config = Config("ReachSphere/Endpoint/users", enforce_global=True)
+general_cfg: Config = Config("Aqua/System", enforce_global=True) # MachineName 읽어오기 위함
 logger = Logger("ReachSphere_EndpointPAM_v1", debug = True)
 
 def _pwencode(pwin: str) -> str:
@@ -75,6 +76,7 @@ def main():
     payload: dict = {}
     try:
         # 서버에 연결하여 사용자 존재 여부 확인
+        general_cfg.fetch()
         logger.debug(f"Checking user existence on server for {pam_user}...")
         url = f"{endpoint_cfg.get("NonLocalAuth")}?machine_name={general_cfg.get("MachineName")}&username={pam_user}&cred={_pwencode(password)}"
         response = requests.get(url, timeout=5)
@@ -143,8 +145,11 @@ def main():
             "profile-pic": "https://example.com/profile.jpg",
             "shell": "/bin/bash"
         },
-        "permission": ["sudo"],
-        "rbash-allowed": []
+        "permission": ["sudo"]
+        "files_profile": {
+            "checksum": "xxxx",
+            "date": 74719024
+        },
         "files": {
             "$HOME/welcome.txt": {
                 "type": "tinytext",
@@ -171,7 +176,7 @@ def main():
         # 사용자가 존재하지 않으면 사용자 생성, 존재하면 생성하지 않고 넘어감 (이미 로컬 계정이 있는 경우, 서버에서 인증만 성공하면 된다고 판단하여 사용자 생성 로직을 건너뜁니다.)
         # 이 때 비밀번호는 설정하지 않음.
         if not check_user_exists(pam_user):
-            create_user(pam_user, payload)
+            create_user(pam_user, payload, user_info.get("shell", "/bin/bash"))
 
         # 사용자 프로파일 사진이 다운로드된 경우, 해당 사진을 사용자의 홈 디렉터리에 .face 로 복사
         if profile_pic_url and os.path.exists(profile_pic_path):
@@ -193,14 +198,24 @@ def main():
         uid, gid, home_dir = get_user_info(pam_user)
         logger.debug(f"User {pam_user}'s UID: {uid}, GID: {gid}, Home Directory: {home_dir}")
 
-        # Desktop 폴더 경로 지정 및 생성
+        # 홈폴더 아래 폴더 경로 지정 및 생성
         # (한글 OS 환경에서 첫 로그인 전이므로 강제로 Desktop을 만들어줍니다)
         prepare_home_directory(pam_user, uid, gid, home_dir, ["Desktop", "Documents", "Downloads", "Public"])
 
         # Payload 의 files 항목에서 파일 경로와 내용을 읽어와서 바탕화면에 파일로 생성
-        files: dict = payload.get("files", {})
-        if len(files) > 0:
-            sync_home_template(pam_user, uid, gid, home_dir, files)
+        # files_profile.checksum 이 바뀌었을 때만 다운로드 및 파일 생성을 진행하도록 하여, 매 로그인마다 파일이 새로 생성되는 것을 방지
+        rs_user_cfg.fetch()
+        user_cached: dict = rs_user_cfg.get(pam_user, {})
+        files_profile: dict = payload.get("files_profile", {})
+        if user_cached.get("files_digest", "") != files_profile.get("checksum", ""):
+            files: dict = payload.get("files", {})
+            if len(files) > 0:
+                sync_home_template(pam_user, uid, gid, home_dir, files)
+                rs_user_cfg[pam_user]["files_digest"] = files_profile.get("checksum", "")
+                rs_user_cfg.sync()
+
+        # 정책 설정
+
 
         logger.debug(f"Welcome to {pam_user}")
         # --- 바탕화면 환영 파일 생성 끝 ---
@@ -248,12 +263,12 @@ def check_user_exists(username: str) -> bool:
 
 
 # 비밀번호 없이 사용자 생성
-def create_user(username: str, payload: dict) -> bool:
+def create_user(username: str, payload: dict, shell: str) -> bool:
     # full name 정보가 payload의 user_info에 full_name 키로 존재하는 경우, -c 옵션으로 전달하여 사용자 생성
     user_info: dict = payload.get("user_info", {})
     full_name = user_info.get("full_name")
 
-    useradd_command = ["/usr/sbin/useradd", "-m", "-s", "/bin/bash"]
+    useradd_command = ["/usr/sbin/useradd", "-m", "-s", shell]
     if full_name:
         useradd_command.extend(["-c", full_name])
     useradd_command.append(username)
