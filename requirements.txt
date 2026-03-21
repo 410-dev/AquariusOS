@@ -1,2 +1,8 @@
 pytest
 json5
+anyio
+pytest-asyncio
+pytest-tornasync
+pytest-trio
+pytest-twisted
+twisted

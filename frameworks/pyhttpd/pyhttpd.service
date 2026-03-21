@@ -1,0 +1,22 @@
+# {{SYS_FRAMEWORKS}}/pyhttpd/pyhttpd.service
+
+[Unit]
+Description=pyhttpd webhook daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/apprun {{SYS_FRAMEWORKS}}/pyhttpd/pyhttpd.apprun
+Restart=on-failure
+RestartSec=3
+
+# /run/pyhttpd 소켓 디렉터리 자동 생성
+RuntimeDirectory=pyhttpd
+RuntimeDirectoryMode=0750
+
+# /etc/pyhttpd 디렉터리 자동 생성
+StateDirectory=pyhttpd
+StateDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
