@@ -13,8 +13,22 @@ from osext.pyhttp.Webhook import WebhookTask
 class SimpleHook(WebhookTask):
     @staticmethod
     def on_request(body: str) -> tuple[int, dict]:
-        data = json.loads(body)
-        return 200, {"received": data}
+        return 200, {"received": json.loads(body)}
+
+
+class PrintingHook(WebhookTask):
+    @staticmethod
+    def on_request(body: str) -> tuple[int, dict]:
+        print("line one")
+        print("line two")
+        return 200, {}
+
+
+class PrintAndCrashHook(WebhookTask):
+    @staticmethod
+    def on_request(body: str) -> tuple[int, dict]:
+        print("before crash")
+        raise RuntimeError("crash after print")
 
 
 class BadRequestHook(WebhookTask):
@@ -43,7 +57,18 @@ class CrashingValidateHook(WebhookTask):
         return 200, {}
 
 
-def make_request(body: str, method: str = "POST", path: str = "/test") -> MagicMock:
+class CustomErrorHook(WebhookTask):
+    @staticmethod
+    def on_request(body: str) -> tuple[int, dict]:
+        raise RuntimeError("boom")
+
+    @staticmethod
+    def on_error(exc: Exception) -> tuple[int, dict]:
+        return 418, {"custom": str(exc)}
+
+
+def make_request(body: str = "{}", method: str = "POST",
+                 path: str = "/test") -> MagicMock:
     req = MagicMock(spec=web.Request)
     req.text = AsyncMock(return_value=body)
     req.method = method
@@ -51,19 +76,17 @@ def make_request(body: str, method: str = "POST", path: str = "/test") -> MagicM
     return req
 
 
-# write_access를 mock으로 대체해서 파일 I/O 없이 테스트
 @pytest.fixture(autouse=True)
 def mock_write_access():
     with patch("handler.write_access") as m:
         yield m
 
 
-# ── make_handler ─────────────────────────────────────────────────
+# ── 기본 동작 ─────────────────────────────────────────────────────
 
 class TestMakeHandler:
     def test_returns_callable(self):
-        handler = make_handler(SimpleHook, "alice", "trading", 8080)
-        assert callable(handler)
+        assert callable(make_handler(SimpleHook, "alice", "trading", 8080))
 
     @pytest.mark.asyncio
     async def test_200_on_valid_request(self):
@@ -75,8 +98,13 @@ class TestMakeHandler:
     async def test_response_body_is_json(self):
         handler = make_handler(SimpleHook, "alice", "trading", 8080)
         resp = await handler(make_request('{"key": "value"}'))
-        body = json.loads(resp.text)
-        assert body["received"] == {"key": "value"}
+        assert json.loads(resp.text)["received"] == {"key": "value"}
+
+    @pytest.mark.asyncio
+    async def test_content_type_is_json(self):
+        handler = make_handler(SimpleHook, "alice", "trading", 8080)
+        resp = await handler(make_request("{}"))
+        assert resp.content_type == "application/json"
 
     @pytest.mark.asyncio
     async def test_400_on_failed_validation(self):
@@ -85,10 +113,22 @@ class TestMakeHandler:
         assert resp.status == 400
 
     @pytest.mark.asyncio
+    async def test_400_body_contains_error_key(self):
+        handler = make_handler(BadRequestHook, "alice", "trading", 8080)
+        resp = await handler(make_request(""))
+        assert "error" in json.loads(resp.text)
+
+    @pytest.mark.asyncio
     async def test_500_on_on_request_exception(self):
         handler = make_handler(CrashingHook, "alice", "trading", 8080)
         resp = await handler(make_request("{}"))
         assert resp.status == 500
+
+    @pytest.mark.asyncio
+    async def test_500_body_contains_error_message(self):
+        handler = make_handler(CrashingHook, "alice", "trading", 8080)
+        resp = await handler(make_request("{}"))
+        assert "handler crash" in json.loads(resp.text)["error"]
 
     @pytest.mark.asyncio
     async def test_500_on_validate_exception(self):
@@ -97,54 +137,92 @@ class TestMakeHandler:
         assert resp.status == 500
 
     @pytest.mark.asyncio
-    async def test_content_type_is_json(self):
-        handler = make_handler(SimpleHook, "alice", "trading", 8080)
+    async def test_custom_on_error_status(self):
+        handler = make_handler(CustomErrorHook, "alice", "trading", 8080)
         resp = await handler(make_request("{}"))
-        assert resp.content_type == "application/json"
+        assert resp.status == 418
+
+
+# ── stdout 캡처 ───────────────────────────────────────────────────
+
+class TestStdoutCapture:
+    @pytest.mark.asyncio
+    async def test_captured_stdout_passed_to_logger(self, mock_write_access):
+        handler = make_handler(PrintingHook, "alice", "trading", 8080)
+        await handler(make_request("{}"))
+        kwargs = mock_write_access.call_args.kwargs
+        assert kwargs["stdout"] == "line one\nline two\n"
+
+    @pytest.mark.asyncio
+    async def test_no_stdout_passed_as_none(self, mock_write_access):
+        handler = make_handler(SimpleHook, "alice", "trading", 8080)
+        await handler(make_request("{}"))
+        kwargs = mock_write_access.call_args.kwargs
+        assert kwargs["stdout"] is None
+
+    @pytest.mark.asyncio
+    async def test_stdout_captured_even_on_crash(self, mock_write_access):
+        handler = make_handler(PrintAndCrashHook, "alice", "trading", 8080)
+        resp = await handler(make_request("{}"))
+        assert resp.status == 500
+        kwargs = mock_write_access.call_args.kwargs
+        assert kwargs["stdout"] == "before crash\n"
+
+    @pytest.mark.asyncio
+    async def test_real_stdout_restored_after_handler(self):
+        import sys
+        original = sys.stdout
+        handler = make_handler(PrintingHook, "alice", "trading", 8080)
+        await handler(make_request("{}"))
+        assert sys.stdout is original
+
+    @pytest.mark.asyncio
+    async def test_real_stdout_restored_after_crash(self):
+        import sys
+        original = sys.stdout
+        handler = make_handler(PrintAndCrashHook, "alice", "trading", 8080)
+        await handler(make_request("{}"))
+        assert sys.stdout is original
 
 
 # ── access log 기록 검증 ──────────────────────────────────────────
 
 class TestHandlerLogging:
     @pytest.mark.asyncio
-    async def test_logs_on_success(self, mock_write_access):
+    async def test_logs_correct_metadata(self, mock_write_access):
         handler = make_handler(SimpleHook, "alice", "trading", 8080)
-        await handler(make_request('{}', path="/trading"))
-        mock_write_access.assert_called_once()
+        await handler(make_request("{}", method="POST", path="/trading"))
         kwargs = mock_write_access.call_args.kwargs
         assert kwargs["user"]    == "alice"
         assert kwargs["context"] == "trading"
         assert kwargs["port"]    == 8080
+        assert kwargs["method"]  == "POST"
+        assert kwargs["path"]    == "/trading"
         assert kwargs["status"]  == 200
         assert kwargs["error"]   is None
 
     @pytest.mark.asyncio
-    async def test_logs_on_validation_failure(self, mock_write_access):
+    async def test_logs_400_on_validation_failure(self, mock_write_access):
         handler = make_handler(BadRequestHook, "alice", "trading", 8080)
         await handler(make_request(""))
-        kwargs = mock_write_access.call_args.kwargs
-        assert kwargs["status"] == 400
+        assert mock_write_access.call_args.kwargs["status"] == 400
 
     @pytest.mark.asyncio
-    async def test_logs_error_traceback_on_crash(self, mock_write_access):
+    async def test_logs_traceback_on_crash(self, mock_write_access):
         handler = make_handler(CrashingHook, "alice", "trading", 8080)
         await handler(make_request("{}"))
         kwargs = mock_write_access.call_args.kwargs
         assert kwargs["status"] == 500
-        assert kwargs["error"] is not None
         assert "handler crash" in kwargs["error"]
 
     @pytest.mark.asyncio
-    async def test_logs_method_and_path(self, mock_write_access):
-        handler = make_handler(SimpleHook, "alice", "trading", 8080)
-        await handler(make_request("{}", method="POST", path="/trading"))
-        kwargs = mock_write_access.call_args.kwargs
-        assert kwargs["method"] == "POST"
-        assert kwargs["path"]   == "/trading"
-
-    @pytest.mark.asyncio
-    async def test_elapsed_ms_is_positive(self, mock_write_access):
+    async def test_elapsed_ms_is_non_negative(self, mock_write_access):
         handler = make_handler(SimpleHook, "alice", "trading", 8080)
         await handler(make_request("{}"))
-        kwargs = mock_write_access.call_args.kwargs
-        assert kwargs["elapsed_ms"] >= 0
+        assert mock_write_access.call_args.kwargs["elapsed_ms"] >= 0
+
+    @pytest.mark.asyncio
+    async def test_logs_called_exactly_once_per_request(self, mock_write_access):
+        handler = make_handler(SimpleHook, "alice", "trading", 8080)
+        await handler(make_request("{}"))
+        assert mock_write_access.call_count == 1

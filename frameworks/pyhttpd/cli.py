@@ -14,6 +14,8 @@ import errno
 import select
 import signal as _signal
 
+CERTS_DIR = "/etc/pyhttpd/certs"
+
 LOG_BASE = "/var/log/pyhttpd"
 
 # ── 상수 ─────────────────────────────────────────────────────────
@@ -73,14 +75,11 @@ def _ok(msg: str):
 def _current_user() -> str:
     return pwd.getpwuid(os.getuid()).pw_name
 
+def _inst_filename(user, context, port, proto="http"):
+    return f"{user}.{context}.{port}.{proto}.inst"
 
-def _inst_filename(user: str, context: str, port: int) -> str:
-    return f"{user}.{context}.{port}.inst"
-
-
-def _script_dest(user: str, context: str, port: int) -> str:
-    return os.path.join(INSTANCES_DIR, user, f"{context}.{port}.py")
-
+def _script_dest(user, context, port, proto="http"):
+    return os.path.join(INSTANCES_DIR, user, f"{context}.{port}.{proto}.py")
 
 def _ensure_dirs(user: str):
     user_dir = os.path.join(INSTANCES_DIR, user)
@@ -111,48 +110,76 @@ def _validate_script(path: str):
 
 # ── 서브커맨드 구현 ───────────────────────────────────────────────
 
+
 def cmd_register(args):
     user    = _current_user()
     context = args.context
     port    = args.port
     src     = os.path.abspath(args.script)
 
+    # 프로토콜 결정
+    if args.redirect_https:
+        proto = "redirect"
+    elif args.ssl:
+        proto = "https"
+    else:
+        proto = "http"
+
     _validate_context(context)
-    _validate_script(src)
+    if proto != "redirect":
+        _validate_script(src)
     _ensure_dirs(user)
 
-    dest     = _script_dest(user, context, port)
-    inst_name = _inst_filename(user, context, port)
+    dest      = _script_dest(user, context, port, proto)
+    inst_name = _inst_filename(user, context, port, proto)
     link_path = os.path.join(ENABLED_DIR, inst_name)
 
-    print(f"Validating... OK")
+    print("Validating... OK")
 
-    # 스크립트 복사
-    shutil.copy2(src, dest)
-    os.chmod(dest, 0o644)
-    print(f"Copied script from {src}")
-    print(f"          to {dest}")
+    # 인증서 처리 (HTTPS 수동)
+    if proto == "https" and not args.acme_domain:
+        if not args.ssl_cert or not args.ssl_key:
+            _die("--ssl requires --ssl-cert and --ssl-key (or --acme-domain)")
+        sys.path.insert(0, "{{SYS_FRAMEWORKS}}/pyhttpd/pyhttpd.apprun")
+        from ssl_manager import install_cert
+        install_cert(user, context, port, args.ssl_cert, args.ssl_key)
+        print(f"Installed certificate for {context}:{port}")
 
-    # --enable-now: 심볼릭 링크 생성
+    # 인증서 처리 (ACME)
+    if proto == "https" and args.acme_domain:
+        import asyncio
+        sys.path.insert(0, "{{SYS_FRAMEWORKS}}/pyhttpd/pyhttpd.apprun")
+        from ssl_manager import provision_acme
+        try:
+            asyncio.run(provision_acme(user, context, port, args.acme_domain))
+            print(f"ACME certificate issued for {args.acme_domain}")
+        except RuntimeError as e:
+            _die(str(e))
+
+    # 스크립트 복사 (redirect는 스크립트 불필요)
+    if proto != "redirect":
+        shutil.copy2(src, dest)
+        os.chmod(dest, 0o644)
+        print(f"Copied script from {src}")
+        print(f"          to {dest}")
+
     if args.enable_now:
         if os.path.islink(link_path):
             os.unlink(link_path)
-        os.symlink(dest, link_path)
+        target = dest if proto != "redirect" else "/dev/null"
+        os.symlink(target, link_path)
         print(f"Created symbolic link {link_path}")
-        print(f"                   -> {dest}")
 
-        # 데몬에 reload 요청
         resp = _ipc({"cmd": "reload"})
         if resp.get("ok"):
             print("Registered to pyhttpd.")
             print("Updating routers...")
             print("Success.")
         else:
-            # 데몬 없어도 파일은 등록됐으니 경고만
             print(f"Warning: {resp.get('error')}")
             print("Files registered. Start pyhttpd daemon to activate.")
     else:
-        print(f"Registered (not enabled). Run: pyhttpd enable {context} --port {port}")
+        print(f"Registered (not enabled). Run: pyhttpd enable {context} --port {port} --proto {proto}")
 
 
 def cmd_unregister(args):
@@ -346,6 +373,25 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Stream new log entries in real time")
     p_logs.set_defaults(func=cmd_logs)
 
+    # register
+    p_reg = sub.add_parser("register", help="Register a webhook script")
+    p_reg.add_argument("script", nargs="?",
+                       help="Path to the .py script (not required for --redirect-https)")
+    p_reg.add_argument("--port", type=int, required=True)
+    p_reg.add_argument("--context", required=True)
+    p_reg.add_argument("--enable-now", action="store_true")
+    p_reg.add_argument("--ssl", action="store_true",
+                       help="Enable HTTPS for this instance")
+    p_reg.add_argument("--ssl-cert", metavar="PATH",
+                       help="Path to PEM certificate file")
+    p_reg.add_argument("--ssl-key", metavar="PATH",
+                       help="Path to PEM private key file")
+    p_reg.add_argument("--acme-domain", metavar="DOMAIN",
+                       help="Issue certificate via Let's Encrypt for this domain")
+    p_reg.add_argument("--redirect-https", action="store_true",
+                       help="Register this port as HTTP→HTTPS redirect (no script needed)")
+    p_reg.set_defaults(func=cmd_register)
+
     return parser
 
 
@@ -355,12 +401,10 @@ def _log_path(user: str, context: str, port: int) -> str:
 
 
 def _format_entry(line: str) -> str:
-    """JSON 로그 한 줄을 사람이 읽기 좋은 형태로 변환합니다."""
     try:
         e = json.loads(line)
         status = e.get("status", "?")
 
-        # status code 에 따라 prefix 부여
         if status >= 500:
             prefix = "ERR"
         elif status >= 400:
@@ -369,20 +413,23 @@ def _format_entry(line: str) -> str:
             prefix = " OK"
 
         base = (
-            f"[{e.get('ts', '?')}] {prefix} "
+            f"[{e.get('ts','?')}] {prefix} "
             f"{e.get('method','?')} {e.get('path','?')} "
             f"→ {status} ({e.get('ms','?')}ms)"
         )
 
         body = e.get("body", "")
         if body:
-            # 한 줄로 줄여서 표시
-            body_preview = body.replace("\n", " ")[:120]
-            base += f"\n    body: {body_preview}"
+            base += f"\n    body: {body.replace(chr(10), ' ')[:120]}"
+
+        # stdout 출력 (print() 캡처 결과)
+        stdout_lines = e.get("stdout")
+        if stdout_lines:
+            formatted = "\n    ".join(stdout_lines)
+            base += f"\n    stdout:\n    {formatted}"
 
         error = e.get("error")
         if error:
-            # traceback은 들여쓰기해서 표시
             indented = "\n    ".join(error.strip().splitlines())
             base += f"\n    traceback:\n    {indented}"
 

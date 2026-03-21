@@ -15,9 +15,6 @@ def _log_path(user: str, context: str, port: int) -> str:
 
 
 def get_logger(user: str, context: str, port: int) -> logging.Logger:
-    """
-    인스턴스별 로거를 반환합니다. 이미 생성된 경우 캐시에서 반환.
-    """
     key = f"{user}.{context}.{port}"
     if key in _loggers:
         return _loggers[key]
@@ -27,23 +24,21 @@ def get_logger(user: str, context: str, port: int) -> logging.Logger:
 
     logger = logging.getLogger(f"pyhttpd.access.{key}")
     logger.setLevel(logging.DEBUG)
-    logger.propagate = False  # 루트 로거로 전파 차단
+    logger.propagate = False
 
     handler = RotatingFileHandler(
         log_path,
-        maxBytes=10 * 1024 * 1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,
         backupCount=5,
         encoding="utf-8",
     )
     handler.setFormatter(logging.Formatter("%(message)s"))
     logger.addHandler(handler)
-
     _loggers[key] = logger
     return logger
 
 
 def remove_logger(user: str, context: str, port: int):
-    """인스턴스 언로드 시 로거 핸들러를 닫고 캐시에서 제거합니다."""
     key = f"{user}.{context}.{port}"
     logger = _loggers.pop(key, None)
     if logger:
@@ -62,16 +57,21 @@ def write_access(
     elapsed_ms: float,
     body: str,
     error: str | None = None,
+    stdout: str | None = None,       # 추가
 ):
     logger = get_logger(user, context, port)
     entry = {
-        "ts":      time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "method":  method,
-        "path":    path,
-        "status":  status,
-        "ms":      round(elapsed_ms, 2),
-        "body":    body[:2048],          # 최대 2KB만 저장
+        "ts":     time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "method": method,
+        "path":   path,
+        "status": status,
+        "ms":     round(elapsed_ms, 2),
+        "body":   body[:2048],
     }
+    if stdout:
+        # 빈 줄 제거 후 줄 단위 리스트로 저장
+        entry["stdout"] = [l for l in stdout.splitlines() if l.strip()]
     if error:
         entry["error"] = error
+
     logger.info(json.dumps(entry, ensure_ascii=False))

@@ -1,4 +1,4 @@
-# pyhttpd/instance_manager.py
+# pyhttpd.apprun/instance_manager.py
 
 import asyncio
 import logging
@@ -6,23 +6,28 @@ import os
 import re
 from dataclasses import dataclass
 from loader import load_webhook, LoadError
-from router import Router
+from ssl_manager import make_ssl_context, renew_acme_all
 
 logger = logging.getLogger("instance_manager")
 
 ENABLED_DIR = "/etc/pyhttpd/enabled"
 
-# 파일명 컨벤션: <user>.<context>.<port>.inst
+# <user>.<context>.<port>.<proto>.inst
+# proto: http | https | redirect
 INST_PATTERN = re.compile(
-    r"^(?P<user>[^.]+)\.(?P<context>[^.]+)\.(?P<port>\d+)\.inst$"
+    r"^(?P<user>[^.]+)\.(?P<context>[^.]+)\.(?P<port>\d+)"
+    r"\.(?P<proto>http|https|redirect)\.inst$"
 )
+
+ACME_RENEW_INTERVAL = 12 * 60 * 60  # 12시간
 
 
 @dataclass(frozen=True)
 class InstanceKey:
-    user: str
+    user:    str
     context: str
-    port: int
+    port:    int
+    proto:   str          # "http" | "https" | "redirect"
 
 
 def parse_inst_filename(filename: str) -> InstanceKey | None:
@@ -33,62 +38,61 @@ def parse_inst_filename(filename: str) -> InstanceKey | None:
         user=m.group("user"),
         context=m.group("context"),
         port=int(m.group("port")),
+        proto=m.group("proto"),
     )
 
 
 class InstanceManager:
-    """
-    /etc/pyhttpd/enabled/ 디렉토리를 주기적으로 스캔하여
-    .inst 심볼릭 링크의 추가/제거를 감지하고 Router에 반영합니다.
-
-    inotify/watchdog 대신 polling 방식으로 구현하여
-    의존성을 최소화합니다. (추후 watchdog으로 교체 가능)
-    """
-
-    def __init__(self, router: Router, poll_interval: float = 2.0):
+    def __init__(self, router, poll_interval: float = 2.0):
         self._router = router
         self._poll_interval = poll_interval
-        # 현재 로드된 인스턴스 추적
         self._loaded: set[InstanceKey] = set()
         self._running = False
 
     async def _scan(self) -> set[InstanceKey]:
-        """enabled 디렉토리를 스캔해서 현재 있어야 할 인스턴스 집합을 반환합니다."""
         found: set[InstanceKey] = set()
-
         if not os.path.isdir(ENABLED_DIR):
             return found
-
         for filename in os.listdir(ENABLED_DIR):
             key = parse_inst_filename(filename)
             if key is None:
                 continue
-
             inst_path = os.path.join(ENABLED_DIR, filename)
-
-            # 심볼릭 링크가 유효한지 확인
             if not os.path.islink(inst_path) or not os.path.exists(inst_path):
-                logger.warning(f"Broken or non-symlink .inst file: {filename}, skipping")
+                logger.warning(f"Broken symlink: {filename}, skipping")
                 continue
-
             found.add(key)
-
         return found
 
     def _resolve_script_path(self, key: InstanceKey) -> str:
-        """
-        .inst 심볼릭 링크가 가리키는 실제 .py 파일 경로를 반환합니다.
-        """
-        filename = f"{key.user}.{key.context}.{key.port}.inst"
-        inst_path = os.path.join(ENABLED_DIR, filename)
-        return os.path.realpath(inst_path)
+        filename = f"{key.user}.{key.context}.{key.port}.{key.proto}.inst"
+        return os.path.realpath(os.path.join(ENABLED_DIR, filename))
 
     async def _load(self, key: InstanceKey):
+        # redirect 인스턴스는 스크립트 로딩 없이 바로 등록
+        if key.proto == "redirect":
+            await self._router.register_redirect(
+                key.port, key.user, key.context
+            )
+            self._loaded.add(key)
+            logger.info(f"Loaded redirect: {key}")
+            return
+
         script_path = self._resolve_script_path(key)
         try:
             task_cls = load_webhook(script_path)
-            # user를 router에 함께 전달
-            await self._router.register(key.port, key.user, key.context, task_cls)
+
+            ssl_ctx = None
+            if key.proto == "https":
+                try:
+                    ssl_ctx = make_ssl_context(key.user, key.context, key.port)
+                except FileNotFoundError as e:
+                    logger.error(f"SSL cert missing for {key}: {e}")
+                    return
+
+            await self._router.register(
+                key.port, key.user, key.context, task_cls, ssl_ctx=ssl_ctx
+            )
             self._loaded.add(key)
             logger.info(f"Loaded: {key}")
         except LoadError as e:
@@ -96,41 +100,37 @@ class InstanceManager:
 
     async def _unload(self, key: InstanceKey):
         try:
-            await self._router.unregister(key.port, key.user, key.context)
+            if key.proto == "redirect":
+                await self._router.unregister_redirect(key.port, key.user, key.context)
+            else:
+                await self._router.unregister(key.port, key.user, key.context)
             self._loaded.discard(key)
             logger.info(f"Unloaded: {key}")
         except KeyError as e:
             logger.warning(f"Tried to unload non-existent key {key}: {e}")
 
     async def _reconcile(self):
-        """
-        현재 상태(loaded)와 원하는 상태(scanned)를 비교해서
-        추가/제거가 필요한 인스턴스를 처리합니다.
-        """
         desired = await self._scan()
-
-        to_add    = desired - self._loaded
-        to_remove = self._loaded - desired
-
-        for key in to_remove:
+        for key in self._loaded - desired:
             await self._unload(key)
-
-        for key in to_add:
+        for key in desired - self._loaded:
             await self._load(key)
 
     async def run(self):
-        """
-        폴링 루프. 데몬의 메인 태스크로 실행됩니다.
-        """
         self._running = True
         logger.info(f"InstanceManager started (poll every {self._poll_interval}s)")
-
-        # 초기 스캔
         await self._reconcile()
 
+        renew_elapsed = 0.0
         while self._running:
             await asyncio.sleep(self._poll_interval)
+            renew_elapsed += self._poll_interval
             await self._reconcile()
+
+            # 12시간마다 ACME 갱신 시도
+            if renew_elapsed >= ACME_RENEW_INTERVAL:
+                renew_elapsed = 0.0
+                asyncio.ensure_future(renew_acme_all())
 
     def stop(self):
         self._running = False

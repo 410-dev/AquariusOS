@@ -8,14 +8,12 @@ from access_logger import (
     get_logger,
     remove_logger,
     write_access,
-    _log_path,
     _loggers,
 )
 
 
 @pytest.fixture(autouse=True)
 def clean_loggers():
-    """각 테스트 전후로 로거 캐시와 핸들러를 정리합니다."""
     _loggers.clear()
     yield
     for key in list(_loggers.keys()):
@@ -29,6 +27,12 @@ def clean_loggers():
 def log_dir(tmp_path):
     with patch("access_logger.LOG_BASE", str(tmp_path)):
         yield tmp_path
+
+
+def read_log(log_dir, user, context, port) -> list[dict]:
+    path = os.path.join(log_dir, user, f"{context}.{port}.log")
+    with open(path) as f:
+        return [json.loads(l) for l in f if l.strip()]
 
 
 class TestGetLogger:
@@ -53,49 +57,63 @@ class TestRemoveLogger:
         remove_logger("alice", "trading", 8080)
         assert "alice.trading.8080" not in _loggers
 
-    def test_no_error_on_nonexistent(self, log_dir):
-        remove_logger("ghost", "ctx", 9999)  # 예외 없이 통과해야 함
+    def test_no_error_on_nonexistent(self):
+        remove_logger("ghost", "ctx", 9999)
 
 
 class TestWriteAccess:
-    def _read_log(self, log_dir, user, context, port) -> list[dict]:
-        path = os.path.join(log_dir, user, f"{context}.{port}.log")
-        with open(path) as f:
-            return [json.loads(l) for l in f if l.strip()]
-
     def test_writes_entry(self, log_dir):
         write_access("alice", "trading", 8080, "POST", "/trading", 200, 3.5, "{}")
-        entries = self._read_log(log_dir, "alice", "trading", 8080)
-        assert len(entries) == 1
+        assert len(read_log(log_dir, "alice", "trading", 8080)) == 1
 
-    def test_entry_fields(self, log_dir):
+    def test_required_fields_present(self, log_dir):
         write_access("alice", "trading", 8080, "POST", "/trading", 200, 3.5, '{"k":"v"}')
-        entry = self._read_log(log_dir, "alice", "trading", 8080)[0]
-        assert entry["method"] == "POST"
-        assert entry["path"]   == "/trading"
-        assert entry["status"] == 200
-        assert entry["ms"]     == 3.5
-        assert entry["body"]   == '{"k":"v"}'
-        assert "ts" in entry
+        e = read_log(log_dir, "alice", "trading", 8080)[0]
+        assert e["method"] == "POST"
+        assert e["path"]   == "/trading"
+        assert e["status"] == 200
+        assert e["ms"]     == 3.5
+        assert e["body"]   == '{"k":"v"}'
+        assert "ts" in e
 
     def test_error_field_included_when_provided(self, log_dir):
         write_access("alice", "ctx", 8080, "POST", "/", 500, 1.0, "{}", error="boom")
-        entry = self._read_log(log_dir, "alice", "ctx", 8080)[0]
-        assert entry["error"] == "boom"
+        e = read_log(log_dir, "alice", "ctx", 8080)[0]
+        assert e["error"] == "boom"
 
     def test_error_field_absent_when_none(self, log_dir):
         write_access("alice", "ctx", 8080, "POST", "/", 200, 1.0, "{}")
-        entry = self._read_log(log_dir, "alice", "ctx", 8080)[0]
-        assert "error" not in entry
+        e = read_log(log_dir, "alice", "ctx", 8080)[0]
+        assert "error" not in e
+
+    def test_stdout_field_included_when_provided(self, log_dir):
+        write_access("alice", "ctx", 8080, "POST", "/", 200, 1.0, "{}",
+                     stdout="hello\nworld")
+        e = read_log(log_dir, "alice", "ctx", 8080)[0]
+        assert e["stdout"] == ["hello", "world"]
+
+    def test_stdout_empty_lines_filtered(self, log_dir):
+        write_access("alice", "ctx", 8080, "POST", "/", 200, 1.0, "{}",
+                     stdout="hello\n\n\nworld\n")
+        e = read_log(log_dir, "alice", "ctx", 8080)[0]
+        assert e["stdout"] == ["hello", "world"]
+
+    def test_stdout_field_absent_when_none(self, log_dir):
+        write_access("alice", "ctx", 8080, "POST", "/", 200, 1.0, "{}", stdout=None)
+        e = read_log(log_dir, "alice", "ctx", 8080)[0]
+        assert "stdout" not in e
+
+    def test_stdout_field_absent_when_empty_string(self, log_dir):
+        write_access("alice", "ctx", 8080, "POST", "/", 200, 1.0, "{}", stdout="")
+        e = read_log(log_dir, "alice", "ctx", 8080)[0]
+        assert "stdout" not in e
 
     def test_body_truncated_at_2048(self, log_dir):
-        long_body = "x" * 4096
-        write_access("alice", "ctx", 8080, "POST", "/", 200, 1.0, long_body)
-        entry = self._read_log(log_dir, "alice", "ctx", 8080)[0]
-        assert len(entry["body"]) == 2048
+        write_access("alice", "ctx", 8080, "POST", "/", 200, 1.0, "x" * 4096)
+        e = read_log(log_dir, "alice", "ctx", 8080)[0]
+        assert len(e["body"]) == 2048
 
     def test_multiple_entries_appended(self, log_dir):
         for i in range(3):
             write_access("alice", "ctx", 8080, "POST", "/", 200, float(i), "{}")
-        entries = self._read_log(log_dir, "alice", "ctx", 8080)
-        assert len(entries) == 3
+        assert len(read_log(log_dir, "alice", "ctx", 8080)) == 3
