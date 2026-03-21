@@ -160,8 +160,7 @@ def cmd_register(args):
     if proto != "redirect":
         shutil.copy2(src, dest)
         os.chmod(dest, 0o644)
-        print(f"Copied script from {src}")
-        print(f"          to {dest}")
+        print(f"Copied script from {src} to {dest}")
 
     if args.enable_now:
         if os.path.islink(link_path):
@@ -264,27 +263,31 @@ def cmd_list(args):
     for fname in sorted(os.listdir(user_dir)):
         if not fname.endswith(".py"):
             continue
-        # context.port.py
-        parts = fname[:-3].rsplit(".", 1)
-        if len(parts) != 2:
+        # <context>.<port>.<proto>.py
+        parts = fname[:-3].rsplit(".", 2)
+        if len(parts) != 3:
             continue
-        context, port_str = parts
+        context, port_str, proto = parts
+        if not port_str.isdigit():
+            continue
+        if proto not in ("http", "https", "redirect"):
+            continue
         port = int(port_str)
-        inst_name = _inst_filename(user, context, port)
+        inst_name = _inst_filename(user, context, port, proto)
         link_path = os.path.join(ENABLED_DIR, inst_name)
         enabled = os.path.islink(link_path) and os.path.exists(link_path)
-        instances.append((context, port, enabled))
+        instances.append((context, port, proto, enabled))
 
     if not instances:
         print("No instances registered.")
         return
 
-    col = "{:<24} {:>6}  {}"
-    print(col.format("context", "port", "status"))
-    print("-" * 42)
-    for context, port, enabled in instances:
+    col = "{:<24} {:>6}  {:<10}  {}"
+    print(col.format("context", "port", "proto", "status"))
+    print("-" * 50)
+    for context, port, proto, enabled in instances:
         status = "enabled" if enabled else "disabled"
-        print(col.format(context, port, status))
+        print(col.format(context, port, proto, status))
 
 
 def cmd_status(args):
@@ -325,12 +328,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     # register
     p_reg = sub.add_parser("register", help="Register a webhook script")
-    p_reg.add_argument("script", help="Path to the .py script")
+    p_reg.add_argument("script", nargs="?",
+                       help="Path to the .py script (not required for --redirect-https)")
     p_reg.add_argument("--port", type=int, required=True)
-    p_reg.add_argument("--context", required=True,
-                       help="URL context (use 'root' for /)")
-    p_reg.add_argument("--enable-now", action="store_true",
-                       help="Also enable and reload immediately")
+    p_reg.add_argument("--context", required=True)
+    p_reg.add_argument("--enable-now", action="store_true")
+    p_reg.add_argument("--ssl", action="store_true",
+                       help="Enable HTTPS for this instance")
+    p_reg.add_argument("--ssl-cert", metavar="PATH",
+                       help="Path to PEM certificate file")
+    p_reg.add_argument("--ssl-key", metavar="PATH",
+                       help="Path to PEM private key file")
+    p_reg.add_argument("--acme-domain", metavar="DOMAIN",
+                       help="Issue certificate via Let's Encrypt for this domain")
+    p_reg.add_argument("--redirect-https", action="store_true",
+                       help="Register this port as HTTP→HTTPS redirect (no script needed)")
     p_reg.set_defaults(func=cmd_register)
 
     # unregister
@@ -373,24 +385,7 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Stream new log entries in real time")
     p_logs.set_defaults(func=cmd_logs)
 
-    # register
-    p_reg = sub.add_parser("register", help="Register a webhook script")
-    p_reg.add_argument("script", nargs="?",
-                       help="Path to the .py script (not required for --redirect-https)")
-    p_reg.add_argument("--port", type=int, required=True)
-    p_reg.add_argument("--context", required=True)
-    p_reg.add_argument("--enable-now", action="store_true")
-    p_reg.add_argument("--ssl", action="store_true",
-                       help="Enable HTTPS for this instance")
-    p_reg.add_argument("--ssl-cert", metavar="PATH",
-                       help="Path to PEM certificate file")
-    p_reg.add_argument("--ssl-key", metavar="PATH",
-                       help="Path to PEM private key file")
-    p_reg.add_argument("--acme-domain", metavar="DOMAIN",
-                       help="Issue certificate via Let's Encrypt for this domain")
-    p_reg.add_argument("--redirect-https", action="store_true",
-                       help="Register this port as HTTP→HTTPS redirect (no script needed)")
-    p_reg.set_defaults(func=cmd_register)
+
 
     return parser
 
