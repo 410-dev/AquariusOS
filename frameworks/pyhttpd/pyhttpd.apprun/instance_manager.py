@@ -87,7 +87,8 @@ class InstanceManager:
         script_path = self._resolve_script_path(key)
         try:
             task_cls = load_webhook(script_path)
-            await self._router.register(key.port, key.context, task_cls)
+            # user를 router에 함께 전달
+            await self._router.register(key.port, key.user, key.context, task_cls)
             self._loaded.add(key)
             logger.info(f"Loaded: {key}")
         except LoadError as e:
@@ -95,7 +96,7 @@ class InstanceManager:
 
     async def _unload(self, key: InstanceKey):
         try:
-            await self._router.unregister(key.port, key.context)
+            await self._router.unregister(key.port, key.user, key.context)
             self._loaded.discard(key)
             logger.info(f"Unloaded: {key}")
         except KeyError as e:

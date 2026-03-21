@@ -10,6 +10,11 @@ import re
 import shutil
 import socket
 import sys
+import errno
+import select
+import signal as _signal
+
+LOG_BASE = "/var/log/pyhttpd"
 
 # ── 상수 ─────────────────────────────────────────────────────────
 
@@ -331,7 +336,130 @@ def build_parser() -> argparse.ArgumentParser:
     p_rel = sub.add_parser("reload", help="Force daemon to rescan enabled dir")
     p_rel.set_defaults(func=cmd_reload)
 
+    # logs
+    p_logs = sub.add_parser("logs", help="View request logs for an instance")
+    p_logs.add_argument("context")
+    p_logs.add_argument("--port", type=int, required=True)
+    p_logs.add_argument("--lines", type=int, metavar="N",
+                        help="Show last N lines (default: 20)")
+    p_logs.add_argument("--follow", "-f", action="store_true",
+                        help="Stream new log entries in real time")
+    p_logs.set_defaults(func=cmd_logs)
+
     return parser
+
+
+
+def _log_path(user: str, context: str, port: int) -> str:
+    return os.path.join(LOG_BASE, user, f"{context}.{port}.log")
+
+
+def _format_entry(line: str) -> str:
+    """JSON 로그 한 줄을 사람이 읽기 좋은 형태로 변환합니다."""
+    try:
+        e = json.loads(line)
+        status = e.get("status", "?")
+
+        # status code 에 따라 prefix 부여
+        if status >= 500:
+            prefix = "ERR"
+        elif status >= 400:
+            prefix = "WRN"
+        else:
+            prefix = " OK"
+
+        base = (
+            f"[{e.get('ts', '?')}] {prefix} "
+            f"{e.get('method','?')} {e.get('path','?')} "
+            f"→ {status} ({e.get('ms','?')}ms)"
+        )
+
+        body = e.get("body", "")
+        if body:
+            # 한 줄로 줄여서 표시
+            body_preview = body.replace("\n", " ")[:120]
+            base += f"\n    body: {body_preview}"
+
+        error = e.get("error")
+        if error:
+            # traceback은 들여쓰기해서 표시
+            indented = "\n    ".join(error.strip().splitlines())
+            base += f"\n    traceback:\n    {indented}"
+
+        return base
+    except (json.JSONDecodeError, KeyError):
+        return line.rstrip()
+
+
+def cmd_logs(args):
+    user    = _current_user()
+    context = args.context
+    port    = args.port
+    lines   = args.lines
+    follow  = args.follow
+
+    log_path = _log_path(user, context, port)
+
+    if not os.path.isfile(log_path):
+        _die(f"No log file found: {log_path}\nIs '{context}:{port}' registered?")
+
+    if follow and not lines:
+        # --follow 단독: 기존 내용은 건너뛰고 새 줄만 스트리밍
+        _tail_follow(log_path, tail_n=0)
+    elif follow and lines:
+        # --follow --lines N: 마지막 N줄 출력 후 스트리밍
+        _tail_follow(log_path, tail_n=lines)
+    else:
+        # --lines N: 마지막 N줄 출력 후 종료
+        _tail_n(log_path, lines or 20)
+
+
+def _tail_n(path: str, n: int):
+    """파일 끝에서 n줄을 읽어 출력합니다."""
+    with open(path, "rb") as f:
+        # 파일 끝에서 역방향으로 n개 줄바꿈을 찾습니다
+        f.seek(0, 2)
+        size = f.tell()
+        buf = b""
+        pos = size
+        found = 0
+
+        while pos > 0 and found <= n:
+            chunk = min(4096, pos)
+            pos -= chunk
+            f.seek(pos)
+            buf = f.read(chunk) + buf
+            found = buf.count(b"\n")
+
+        lines = buf.decode(errors="replace").splitlines()
+        for line in lines[-n:]:
+            if line.strip():
+                print(_format_entry(line))
+
+
+def _tail_follow(path: str, tail_n: int):
+    """tail -f 스타일로 파일을 실시간으로 스트리밍합니다."""
+    if tail_n > 0:
+        _tail_n(path, tail_n)
+
+    # SIGINT(Ctrl+C) 로 종료
+    interrupted = False
+    def _on_sigint(sig, frame):
+        nonlocal interrupted
+        interrupted = True
+    _signal.signal(_signal.SIGINT, _on_sigint)
+
+    with open(path, "r", errors="replace") as f:
+        f.seek(0, 2)  # 파일 끝으로 이동
+        print(f"Following {path} — Ctrl+C to stop")
+        while not interrupted:
+            line = f.readline()
+            if line:
+                if line.strip():
+                    print(_format_entry(line), flush=True)
+            else:
+                # 새 줄 없으면 잠시 대기
+                select.select([f], [], [], 0.5)
 
 
 def main():

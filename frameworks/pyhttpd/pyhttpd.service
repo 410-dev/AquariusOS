@@ -6,7 +6,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/apprun {{SYS_FRAMEWORKS}}/pyhttpd/pyhttpd.apprun
+ExecStart=/usr/local/bin/apprun {{SYS_FRAMEWORKS}}/pyhttpd/pyhttpd.apprun
 Restart=on-failure
 RestartSec=3
 

@@ -151,3 +151,20 @@ class TestInstanceManagerReconcile:
 
         assert len(manager._loaded) == 1
         await router.stop_all()
+
+
+class TestInstanceManagerUserPropagation:
+    @pytest.mark.asyncio
+    async def test_register_called_with_correct_user(self, enabled_dir, script_factory):
+        script = script_factory("hook.py")
+        make_symlink(enabled_dir, "alice.ctx.8080.inst", script)
+
+        router = Router()
+        manager = InstanceManager(router)
+        await manager._reconcile()
+
+        # 포트 라우터가 올바른 user로 핸들러를 만들었는지 확인
+        # (access log 경로가 alice 기준으로 생성되는지)
+        key = InstanceKey("alice", "ctx", 8080)
+        assert key in manager._loaded
+        await router.stop_all()

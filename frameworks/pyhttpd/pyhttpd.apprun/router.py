@@ -5,6 +5,7 @@ import logging
 from aiohttp import web
 from osext.pyhttp.Webhook import WebhookTask
 from handler import make_handler
+from access_logger import remove_logger
 
 logger = logging.getLogger("router")
 
@@ -65,21 +66,35 @@ class PortRouter:
             await self._runner.cleanup()
         logger.info(f"[:{self.port}] Stopped")
 
-    def register(self, context: str, task_cls: type[WebhookTask]):
-        """
-        context에 WebhookTask를 등록합니다. 이미 존재하면 교체(hot-reload).
-        서버 재시작 없이 즉시 반영됩니다.
-        """
+    # def register(self, context: str, task_cls: type[WebhookTask]):
+    #     """
+    #     context에 WebhookTask를 등록합니다. 이미 존재하면 교체(hot-reload).
+    #     서버 재시작 없이 즉시 반영됩니다.
+    #     """
+    #     if context in self._routes:
+    #         logger.warning(f"[:{self.port}] Replacing existing context '{context}'")
+    #     self._routes[context] = make_handler(task_cls)
+    #     logger.info(f"[:{self.port}] Registered /{'' if context == 'root' else context}")
+    #
+    # def unregister(self, context: str):
+    #     """context를 제거합니다."""
+    #     if context not in self._routes:
+    #         raise KeyError(f"Context '{context}' not registered on port {self.port}")
+    #     del self._routes[context]
+    #     logger.info(f"[:{self.port}] Unregistered context '{context}'")
+
+    def register(self, user: str, context: str, task_cls: type[WebhookTask]):
+        # 기존 핸들러 교체 시 로거도 교체
         if context in self._routes:
-            logger.warning(f"[:{self.port}] Replacing existing context '{context}'")
-        self._routes[context] = make_handler(task_cls)
+            remove_logger(user, context, self.port)
+        self._routes[context] = make_handler(task_cls, user, context, self.port)
         logger.info(f"[:{self.port}] Registered /{'' if context == 'root' else context}")
 
-    def unregister(self, context: str):
-        """context를 제거합니다."""
+    def unregister(self, user: str, context: str):
         if context not in self._routes:
             raise KeyError(f"Context '{context}' not registered on port {self.port}")
         del self._routes[context]
+        remove_logger(user, context, self.port)
         logger.info(f"[:{self.port}] Unregistered context '{context}'")
 
     def list_contexts(self) -> list[str]:
@@ -95,33 +110,48 @@ class Router:
     def __init__(self):
         self._ports: dict[int, PortRouter] = {}
 
-    async def register(self, port: int, context: str, task_cls: type[WebhookTask]):
-        """
-        포트+컨텍스트에 WebhookTask를 등록합니다.
-        해당 포트의 서버가 없으면 새로 시작합니다.
-        """
+    # async def register(self, port: int, context: str, task_cls: type[WebhookTask]):
+    #     """
+    #     포트+컨텍스트에 WebhookTask를 등록합니다.
+    #     해당 포트의 서버가 없으면 새로 시작합니다.
+    #     """
+    #     if port not in self._ports:
+    #         port_router = PortRouter(port)
+    #         await port_router.start()
+    #         self._ports[port] = port_router
+    #
+    #     self._ports[port].register(context, task_cls)
+    #
+    # async def unregister(self, port: int, context: str):
+    #     """
+    #     컨텍스트를 제거합니다.
+    #     해당 포트에 남은 컨텍스트가 없으면 서버도 종료합니다.
+    #     """
+    #     if port not in self._ports:
+    #         raise KeyError(f"Port {port} not active")
+    #
+    #     port_router = self._ports[port]
+    #     port_router.unregister(context)
+    #
+    #     if not port_router.list_contexts():
+    #         await port_router.stop()
+    #         del self._ports[port]
+    #         logger.info(f"Port {port} has no more contexts, server stopped")
+    async def register(self, port: int, user: str, context: str, task_cls):
         if port not in self._ports:
             port_router = PortRouter(port)
             await port_router.start()
             self._ports[port] = port_router
+        self._ports[port].register(user, context, task_cls)
 
-        self._ports[port].register(context, task_cls)
-
-    async def unregister(self, port: int, context: str):
-        """
-        컨텍스트를 제거합니다.
-        해당 포트에 남은 컨텍스트가 없으면 서버도 종료합니다.
-        """
+    async def unregister(self, port: int, user: str, context: str):
         if port not in self._ports:
             raise KeyError(f"Port {port} not active")
-
         port_router = self._ports[port]
-        port_router.unregister(context)
-
+        port_router.unregister(user, context)
         if not port_router.list_contexts():
             await port_router.stop()
             del self._ports[port]
-            logger.info(f"Port {port} has no more contexts, server stopped")
 
     async def stop_all(self):
         """모든 포트 서버를 종료합니다. 데몬 종료 시 호출."""
