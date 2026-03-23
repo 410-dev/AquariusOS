@@ -1,38 +1,38 @@
 import os
 import tempfile
-import fcntl
+import sys
 
 
 # ==========================================
 # 1. 파일 잠금(File Locking) OS별 분기 처리
 # ==========================================
-# if sys.platform == "win32":
-#     import msvcrt
-#
-#
-#     def _lock_file(f):
-#         # 현재 포인터 위치를 저장하고 0으로 이동하여 1바이트 크기만큼 잠금 설정
-#         pos = f.tell()
-#         f.seek(0)
-#         msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
-#         f.seek(pos)
-#
-#
-#     def _unlock_file(f):
-#         pos = f.tell()
-#         f.seek(0)
-#         msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
-#         f.seek(pos)
-# else:
-#     import fcntl
-#
-#
-#     def _lock_file(f):
-#         fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-#
-#
-#     def _unlock_file(f):
-#         fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+if sys.platform == "win32":
+    import msvcrt
+
+
+    def _lock_file(f):
+        # 현재 포인터 위치를 저장하고 0으로 이동하여 1바이트 크기만큼 잠금 설정
+        pos = f.tell()
+        f.seek(0)
+        msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
+        f.seek(pos)
+
+
+    def _unlock_file(f):
+        pos = f.tell()
+        f.seek(0)
+        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+        f.seek(pos)
+else:
+    import fcntl
+
+
+    def _lock_file(f):
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+
+
+    def _unlock_file(f):
+        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 # ==========================================
 # 2. Atomic Write 구현 (임시 파일 후 Replace)
@@ -80,8 +80,8 @@ def _locking_write_core(path: str, content, is_binary: bool, encoding: str = Non
     mode = "ab" if is_binary else "a"
 
     with open(path, mode, encoding=encoding) as f:
-        # _lock_file(f)
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        _lock_file(f)
+        # fcntl.flock(f.fileno(), fcntl.LOCK_EX)
         try:
             f.seek(0)
             f.truncate()  # 락을 획득한 후 안전한 상태에서 기존 내용을 비움
@@ -89,8 +89,8 @@ def _locking_write_core(path: str, content, is_binary: bool, encoding: str = Non
             f.flush()
             os.fsync(f.fileno())
         finally:
-            # _unlock_file(f)
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            _unlock_file(f)
+            # fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 
 def locking_write(path: str, content: str, encoding: str = "utf-8"):
