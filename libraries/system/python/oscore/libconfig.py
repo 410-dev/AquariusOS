@@ -34,7 +34,7 @@ class Config(UserDict):
         if cascade_merge_mode and not cascade:
             self._log("cascade_merge_mode is True but cascade is False. Enabling cascade mode.")
             cascade = True
-        
+
         # enforce_global은 cascade가 True일 수 없음
         if enforce_global and cascade:
             raise ValueError("enforce_global cannot be True if cascade (or cascade_merge_mode) is True")
@@ -69,7 +69,7 @@ class Config(UserDict):
 
                 # Cascade Merge IO 모드로 전환
                 self.io_mode = 1
-            
+
             # 일반 Cascade 모드
             else:
                 self._log("Cascade mode enabled without merge. Will use the first existing config file found in cascade_priorities.")
@@ -85,7 +85,7 @@ class Config(UserDict):
                     default = cascade_priorities[cascade_priority_write_index]
                     self._log(f"No config file found. Falling back to write index path: {default}")
                     self.path = default
-                
+
                 # Cascade IO 모드로 전환 (General 과 동일)
                 # cascade 모드에서는 fetch() 와 sync() 가 일반 모드와 동일하게 동작하지만, path 가 cascade_priorities 에서 결정된다는 점이 다름
                 # self.io_mode = 0 # 기본값과 동일하므로 assign 하지 않음
@@ -110,7 +110,7 @@ class Config(UserDict):
 
     def _log(self, message: str):
         pass
-    
+
     # Fallback 용으로 노출
     def fetch(self) -> "Config":
         if self.io_mode == 0: # General mode
@@ -136,6 +136,11 @@ class Config(UserDict):
             return self._sync_cascade_merge()
         else:
             raise ValueError(f"Invalid value for io_mode: {self.io_mode}")
+
+    def ensure(self, keys: list[str]):
+        for key in keys:
+            if key not in self.data and (not self.resolve_pattern or key not in self.links):
+                raise KeyError(f"Required key '{key}' is missing from config data")
 
     def to_str(self):
         dump_data = self.data.copy()
