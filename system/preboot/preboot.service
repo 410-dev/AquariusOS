@@ -1,6 +1,6 @@
 [Unit]
 DefaultDependencies=no
-Before=plymouth-start.service
+Before=plymouth-start.service plymouth-quit-wait.service
 After=local-fs.target
 
 [Service]
