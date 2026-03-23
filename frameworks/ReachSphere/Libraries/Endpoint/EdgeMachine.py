@@ -9,7 +9,7 @@ import time
 
 from SecureFileUploader import SecureFileUploader
 from osext.reachsphere.localutil import os_specific, read_file
-
+from oscore.libconfig2 import Config, ConfigView
 
 class EdgeMachine:
 
@@ -31,9 +31,9 @@ class EdgeMachine:
 
         path_head = os_specific(
             nt = f"C:\\ProgramData\\AquaAbstractionLayer\\aquanetutil\\{namespace}\\",
-            linux = f"/etc/aqua/{namespace}/",
-            mac = f"/etc/aqua/{namespace}/",
-            aqua = f"/etc/aqua/{namespace}/"
+            linux = f"/etc/aqua/reachsphere/{namespace}/",
+            mac = f"/etc/aqua/reachsphere/{namespace}/",
+            aqua = f"/etc/reachsphere/{namespace}/"
         )
 
         network = cls.get_network_instance(namespace)
@@ -49,13 +49,13 @@ class EdgeMachine:
 
     # 현재 장치가 등록된 네트워크 인스턴스를 반환하는 인스턴스 메서드
     @classmethod
-    def get_network_instance(cls, namespace: str) -> Network:
+    def get_network_instance(cls, namespace: str) -> "Network":
 
         path_head = os_specific(
             nt = f"C:\\ProgramData\\AquaAbstractionLayer\\aquanetutil\\{namespace}\\",
-            linux = f"/etc/aqua/{namespace}/",
-            mac = f"/etc/aqua/{namespace}/",
-            aqua = f"/etc/aqua/{namespace}/"
+            linux = f"/etc/aqua/reachsphere/{namespace}/",
+            mac = f"/etc/aqua/reachsphere/{namespace}/",
+            aqua = f"/etc/reachsphere/{namespace}/"
         )
 
         return Network(
