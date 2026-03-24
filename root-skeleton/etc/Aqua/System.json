@@ -2,5 +2,6 @@
     "_links": {
         "MachineName": "/etc/hostname",
         "MachineName:set": ["hostnamectl", "set-hostname", "{new}"]
-    }
+    },
+    "OSCategory": "{{EDITION_CATEGORY}}"
 }
