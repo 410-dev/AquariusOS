@@ -10,6 +10,7 @@
         "EDITION":          "home",
         "EDITION_DISPLAY":  "Home",
         "EDITION_FILENAME": "osaqua-home",
+        "EDITION_CATEGORY": "Workstation",
         "PrettyName":       "AquariusOS Workstation",
         "CODENAME":         "Genesis",
         "RELEASE_TYPE":     "Experimental",
