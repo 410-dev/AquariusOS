@@ -194,7 +194,7 @@ def _authenticate_machine(session: Session, machine_full_name: str, headers: dic
 
     return False
 
-@app.post("/register_machine")
+@app.post("/v1/register_machine")
 async def register_machine(payload: MachineRegistrationPayload):
     logger.info(f"Handshake requested by machine: {payload.__dict__}.")
 
