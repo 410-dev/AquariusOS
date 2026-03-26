@@ -2,12 +2,16 @@ import os
 import stat
 import subprocess
 import pyinotify
-from oscore import libreg as reg
+from oscore.libconfig2 import Config
 
 # Configuration
-TARGET_BIN_DIR = '/usr/local/sbin'
+# TARGET_BIN_DIR = '/usr/bin'
 APPRUN_LAUNCHER = '/usr/bin/apprun.sh'
-REGISTRY_KEY = "HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/nixshcompliance/Prober"
+# REGISTRY_KEY = "HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/nixshcompliance/Prober"
+
+cfg_ptr: Config = Config("Aqua/me.hysong.nixshcompliance", enforce_global=True)
+cfg_ptr.fetch()
+TARGET_BIN_DIR = cfg_ptr.get("Destination", "/usr/bin")
 
 
 def load_watch_dirs():
@@ -17,21 +21,18 @@ def load_watch_dirs():
     watch_dirs = []
     try:
         # Read the key content to get value names and types
-        key_content = reg.read(REGISTRY_KEY, default={})
+        # key_content = reg.read(REGISTRY_KEY, default={})
+        key_content: list[str] = cfg_ptr.fetch().get("Watch", [])
+        print(f"Watching directories: {key_content}")
 
-        for value_name, value_type in key_content.items():
+        for value in key_content:
             # The prompt specifies we only care about 'str' typed values
-            if value_type == 'str':
-                # Construct path to the specific value to read the actual data
-                # Assuming standard registry path syntax (Key/ValueName)
-                full_value_path = f"{REGISTRY_KEY}/{value_name}"
-                dir_path = reg.read(full_value_path)
-
-                if dir_path and isinstance(dir_path, str):
-                    if os.path.exists(dir_path):
-                        watch_dirs.append(dir_path)
-                    else:
-                        print(f"Warning: Registry path does not exist on disk: {dir_path}")
+            if value and isinstance(value, str):
+                if os.path.exists(value):
+                    watch_dirs.append(value)
+                    print(f"Added watch directory: {value}")
+                else:
+                    print(f"Warning: Registry path does not exist on disk: {value}")
 
     except Exception as e:
         print(f"Error reading registry: {e}")
