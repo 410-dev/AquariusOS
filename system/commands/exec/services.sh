@@ -170,7 +170,7 @@ case $ACTION in
         echo "Enabling service '$SERVICE_NAME'..."
 
         # Prepare the apprun environment
-        /usr/local/sbin/apprun-prepare.sh "$APPRUN_FILE_PATH"
+        /usr/bin/apprun-prepare.sh "$APPRUN_FILE_PATH"
 
         # If bundle contains "AppRunMeta/ControlFlags" directory, iterate through it and put it to systemctl command
         # File name is key, content is value

@@ -15,7 +15,7 @@ EXCLUDED_USERS = {
     "systemd-network", "systemd-resolve", "systemd-timesync"
 }
 
-SCRIPT_PATH = "/usr/local/sbin/apprun.sh"
+SCRIPT_PATH = "/usr/bin/apprun.sh"
 APP_PATH = "{{SYS_APPS}}/regedit.apprun/regedit-app.apprun"
 
 

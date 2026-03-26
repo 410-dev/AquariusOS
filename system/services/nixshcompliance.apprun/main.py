@@ -6,7 +6,7 @@ from oscore import libreg as reg
 
 # Configuration
 TARGET_BIN_DIR = '/usr/local/sbin'
-APPRUN_LAUNCHER = '/usr/local/sbin/apprun.sh'
+APPRUN_LAUNCHER = '/usr/bin/apprun.sh'
 REGISTRY_KEY = "HKEY_LOCAL_MACHINE/SYSTEM/Services/Aqua/nixshcompliance/Prober"
 
 

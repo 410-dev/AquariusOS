@@ -43,7 +43,7 @@
         },
         "unit_content": {
             "hidden": true,
-            "value": "[Unit]\nDescription=$id$\nAfter=network.target\n\n[Service]\nType=simple\nExecStart=/usr/local/sbin/apprun.sh \"$InstallPath$/$id$.apprun\" $args$\nRestart=on-failure\n\n[Install]\nWantedBy=multi-user.target\n",
+            "value": "[Unit]\nDescription=$id$\nAfter=network.target\n\n[Service]\nType=simple\nExecStart=/usr/bin/apprun.sh \"$InstallPath$/$id$.apprun\" $args$\nRestart=on-failure\n\n[Install]\nWantedBy=multi-user.target\n",
             "type": "str"
         }
     },
