@@ -214,7 +214,7 @@ def main():
                 rs_user_cfg[pam_user]["files_digest"] = files_profile.get("checksum", "")
                 rs_user_cfg.sync()
 
-        # 정책 설정
+        # TODO 정책 설정
 
 
         logger.debug(f"Welcome to {pam_user}")
