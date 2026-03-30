@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Usage
-# chprofile <username> <picture path> [--copy-to-home]
+# chprofile <username> <picture path> [--no-copy-to-home]
 
 import sys
 import os
