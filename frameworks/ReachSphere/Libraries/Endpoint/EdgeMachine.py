@@ -23,18 +23,21 @@ class EdgeMachine:
                                                    # 장치의 이름에는 -, _, 공백, 알파벳, 숫자만 사용할 수 있습니다. (특수문자 사용 불가)
         self.pk: str = pk                          # 장치의 공개키. 네트워크에 등록된 장치들은 서로의 공개키를 사용하여 안전하게 통신할 수 있습니다.
         self.auth: str = self.generate_auth()      # 장치가 네트워크에 등록된 후 발급받는 토큰. 이 토큰은 장치가 네트워크에 인증된 상태임을 나타내며, 네트워크와의 통신에 사용됩니다.
-           
+
+    @staticmethod
+    def _get_path_head(namespace: str) -> str:
+        return os_specific(
+            nt=f"C:\\ProgramData\\AquaAbstractionLayer\\aquanetutil\\{namespace}\\",
+            linux=f"/etc/aqua/reachsphere/{namespace}/",
+            mac=f"/etc/aqua/reachsphere/{namespace}/",
+            aqua=f"/etc/reachsphere/{namespace}/"
+        )
 
     # 현재 장치의 EdgeMachine 인스턴스를 반환하는 클래스 메서드
     @classmethod
     def get_current_machine(cls, namespace: str) -> 'EdgeMachine':
 
-        path_head = os_specific(
-            nt = f"C:\\ProgramData\\AquaAbstractionLayer\\aquanetutil\\{namespace}\\",
-            linux = f"/etc/aqua/reachsphere/{namespace}/",
-            mac = f"/etc/aqua/reachsphere/{namespace}/",
-            aqua = f"/etc/reachsphere/{namespace}/"
-        )
+        path_head = cls._get_path_head(namespace)
 
         network = cls.get_network_instance(namespace)
 
@@ -51,12 +54,7 @@ class EdgeMachine:
     @classmethod
     def get_network_instance(cls, namespace: str) -> "Network":
 
-        path_head = os_specific(
-            nt = f"C:\\ProgramData\\AquaAbstractionLayer\\aquanetutil\\{namespace}\\",
-            linux = f"/etc/aqua/reachsphere/{namespace}/",
-            mac = f"/etc/aqua/reachsphere/{namespace}/",
-            aqua = f"/etc/reachsphere/{namespace}/"
-        )
+        path_head = cls._get_path_head(namespace)
 
         return Network(
             name = read_file(f"{path_head}network_name"),
@@ -91,7 +89,8 @@ class EdgeMachine:
         return f"{netw.name}/{netw.group}/{mach.machine_owner}/{mach.machine_name}"
 
 
-
+    def __str__(self):
+        return f"EdgeMachine(network={self.network}, group={self.group}, owner={self.machine_owner}, name={self.machine_name})"
 
 
 class Network:
@@ -184,6 +183,26 @@ class Network:
             print(f"Error getting machines of group {group} and user {user_id}: {e}")
             return []
 
+    def get_machine_prop(self, identity: EdgeMachine, target_machine: EdgeMachine, prop_names: list[str]) -> dict:
+        # 엔드포인트를 통해 특정 장치의 속성 정보를 가져오는 메서드.
+        # prop example:
+        # - "security.bootable": 장치가 부팅 가능한지
+
+        header = {
+            "Machine-Full-Name": target_machine.get_machine_fullname(),
+            "Identity": identity.get_machine_fullname(),
+            "Query": json.dumps(prop_names)
+        }
+
+        endpoint: str = f"v1/get_machine_prop"
+
+        try:
+            data = self._mk_request(f"{self.auth_server}/{endpoint}", header, self.auth_server_pk, identity.generate_auth())
+            return data.get("props", {})
+        except Exception as e:
+            print(f"Error getting properties of machine {target_machine.get_machine_fullname()}: {e}")
+            return {}
+
 
     # 그룹 정보를 가져오는 인스턴스 메서드
     def enumerate_group(self, identity: EdgeMachine, group_to_enumerate: str, depth: int = 1) -> list[str]:
@@ -205,7 +224,7 @@ class Network:
 
 
     # 여러 장치에 동시에 파일을 보내는 인스턴스 메서드
-    def relay_send_to_machines(self, network: Network, identity: EdgeMachine, multiple_target_machines: list[EdgeMachine], port: int, file_path: str) -> dict[str, bool]:
+    def relay_send_to_machines(self, network: "Network", identity: EdgeMachine, multiple_target_machines: list[EdgeMachine], port: int, file_path: str) -> dict[str, bool]:
         success_dict = {}
         for machine in multiple_target_machines:
             success_dict[machine.get_machine_fullname()] = self.relay_send_to_machine(network, identity, machine, port, file_path)
@@ -213,7 +232,7 @@ class Network:
 
 
     # 단일 장치에 파일을 보내는 인스턴스 메서드
-    def relay_send_to_machine(self, network: Network, identity: EdgeMachine, target: EdgeMachine, port: int, file_path: str, ttl: int = 600) -> bool:
+    def relay_send_to_machine(self, network: "Network", identity: EdgeMachine, target: EdgeMachine, port: int, file_path: str, ttl: int = 600) -> bool:
         # 파일 크기 계산
         if not os.path.exists(file_path):
             print(f"File does not exist: {file_path}")
