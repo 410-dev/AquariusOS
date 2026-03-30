@@ -7,7 +7,7 @@ import logging
 import requests
 from pathlib import Path
 
-from oscore.libreachsphere.endpoint import EdgeMachine
+from enrollment_manager import EdgeMachine
 from oscore.libconfig2 import Config
 
 logging.basicConfig(
