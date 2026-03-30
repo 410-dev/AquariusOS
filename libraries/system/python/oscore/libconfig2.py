@@ -373,7 +373,7 @@ class Config(UserDict, ConfigBase):
                 try:
                     os.makedirs(os.path.dirname(link_path), exist_ok=True)
                     if link_path.endswith(".json"):
-                        atomic_write(link_path, json.dumps(value, indent=4))
+                        atomic_write(link_path, json.dumps(value, indent=4, ensure_ascii=False))
                     else:
                         atomic_write(link_path, str(value))
                 except IOError as e:
@@ -414,7 +414,7 @@ class Config(UserDict, ConfigBase):
         dump_data = self.data.copy()
         if self.resolve_pattern and self.links:
             dump_data["_links"] = self.links
-        return json.dumps(dump_data, indent=4)
+        return json.dumps(dump_data, indent=4, ensure_ascii=False)
 
     # ------------------------------------------------------------------
     # 내부 구현
@@ -467,7 +467,7 @@ class Config(UserDict, ConfigBase):
             dump_data = self.data.copy()
             if self.resolve_pattern and self.links:
                 dump_data["_links"] = self.links
-            atomic_write(self.path, json.dumps(dump_data, indent=4))
+            atomic_write(self.path, json.dumps(dump_data, indent=4, ensure_ascii=False))
             return True
         except IOError as e:
             raise IOError(f"IO error while saving config file: {self.path}") from e
@@ -481,7 +481,7 @@ class Config(UserDict, ConfigBase):
             dump_data = self.data.copy()
             if self.resolve_pattern and self.links:
                 dump_data["_links"] = self.links
-            atomic_write(target_path, json.dumps(dump_data, indent=4))
+            atomic_write(target_path, json.dumps(dump_data, indent=4, ensure_ascii=False))
             return True
         except IOError as e:
             raise IOError(f"IO error while saving config file: {target_path}") from e
