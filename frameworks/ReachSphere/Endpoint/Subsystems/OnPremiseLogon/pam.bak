@@ -30,7 +30,7 @@ def main():
 
     # 2. 설정값 존재 확인
     required_fields: list[str] = [
-        "NonLocalAuth", # NonLocal 계정 인증 서버 URL
+        "OnPremiseLogonAuth", # OnPremiseLogon 계정 인증 서버 URL
         ""
     ]
     for field in required_fields:
@@ -78,7 +78,7 @@ def main():
         # 서버에 연결하여 사용자 존재 여부 확인
         general_cfg.fetch()
         logger.debug(f"Checking user existence on server for {pam_user}...")
-        url = f"{endpoint_cfg.get("NonLocalAuth")}?machine_name={general_cfg.get("MachineName")}&username={pam_user}&cred={_pwencode(password)}"
+        url = f"{endpoint_cfg.get("OnPremiseLogonAuth")}?machine_name={general_cfg.get("MachineName")}&username={pam_user}&cred={_pwencode(password)}"
         response = requests.get(url, timeout=5)
 
         # 서버 응답 처리
@@ -214,7 +214,7 @@ def main():
                 rs_user_cfg[pam_user]["files_digest"] = files_profile.get("checksum", "")
                 rs_user_cfg.sync()
 
-        # TODO 정책 설정
+        # 정책 설정
 
 
         logger.debug(f"Welcome to {pam_user}")
@@ -428,10 +428,10 @@ def sync_home_template(username: str, uid: int, gid: int, home_directory: str, f
     files_payload: str = f"/tmp/dat_{username}_{random.randint(1000000,9999999)}.json"
     atomic_write(files_payload, json.dumps(files))
 
-    # Executable: {{SYS_FRAMEWORKS}}/ReachSphere/Endpoint/Subsystems/NonLocal/localize-userhome-template.py
+    # Executable: {{SYS_FRAMEWORKS}}/ReachSphere/Endpoint/Subsystems/OnPremiseLogon/localize-userhome-template.py
     # exec.py <username> <uid> <gid> <homedir> <payload file>
     subprocess.Popen(
-        ["/usr/bin/python3", f"{{SYS_FRAMEWORK}}/ReachSphere/Endpoint/Subsystems/NonLocal/localize-userhome-template.py", username, uid, gid, home_directory, files_payload],
+        ["/usr/bin/python3", f"{{SYS_FRAMEWORK}}/ReachSphere/Endpoint/Subsystems/OnPremiseLogon/localize-userhome-template.py", username, uid, gid, home_directory, files_payload],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
     )
