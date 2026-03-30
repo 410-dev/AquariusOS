@@ -206,6 +206,7 @@ class Config(UserDict, ConfigBase):
     def __init__(
         self,
         path: str,
+        path_is_abs: bool = False,
         enforce_global: bool = False,
         cascade_merge_mode: bool = False,
         cascade: bool = False,
@@ -239,7 +240,6 @@ class Config(UserDict, ConfigBase):
         elif sys.platform == "darwin":
             home_path = os.path.expanduser("~/Library/Application Support/" + path)
             global_path = "/Library/Application Support/" + path
-
 
         if cascade_merge_mode and not cascade:
             self._log("cascade_merge_mode is True but cascade is False. Enabling cascade mode.")
@@ -286,6 +286,9 @@ class Config(UserDict, ConfigBase):
             self._log("Cascade mode disabled.")
             self.path = global_path if enforce_global else home_path
             self._log(f"Using {'global' if enforce_global else 'user local'} settings.")
+
+        if path_is_abs:
+            self.path = path
 
         self._log(f"Config path set to: {self.path}")
 
