@@ -1,0 +1,14 @@
+# /etc/systemd/system/network-auth-monitor.service
+[Unit]
+Description=Network Authentication Monitor Daemon
+After=boot-auth.service usb-block.service
+Requires=boot-auth.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 {{SYS_FRAMEWORKS}}/ReachSphere/Endpoint/Subsystems/AuthorizedBoot/network_monitor.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

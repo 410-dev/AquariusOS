@@ -1,0 +1,10 @@
+{
+    "auth_url": "https://your-auth-server.com/api/verify",
+    "auth_secret": "your-secret-token",
+    "expected_response": {
+        "status": "authorized",
+        "device_id": "YOUR_DEVICE_ID"
+    },
+    "timeout_seconds": 10,
+    "retry_count": 3
+}

@@ -1,0 +1,17 @@
+# /etc/systemd/system/boot-auth.service
+[Unit]
+Description=Boot Authentication Check
+# Plymouth 이후, 네트워크 서비스 이전에 실행
+After=plymouth-quit-wait.service
+Before=display-manager.service
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/mkdir -p /run/boot-auth
+ExecStart=/usr/bin/python3 {{SYS_FRAMEWORKS}}/ReachSphere/Endpoint/Subsystems/AuthorizedBoot/auth_check.py boot
+RemainAfterExit=yes
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

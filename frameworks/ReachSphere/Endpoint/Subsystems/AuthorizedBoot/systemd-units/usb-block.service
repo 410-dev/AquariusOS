@@ -1,0 +1,13 @@
+# /etc/systemd/system/usb-block.service
+[Unit]
+Description=USB External Storage Block (when unauthenticated)
+After=boot-auth.service
+Requires=boot-auth.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 {{SYS_FRAMEWORKS}}/ReachSphere/Endpoint/Subsystems/AuthorizedBoot/usb_block.py check
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
