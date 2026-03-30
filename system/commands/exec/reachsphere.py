@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import os
-import shutil
 import sys
-import oscore.libreachsphere.endpoint as endpoint
 from oscore.libconfig2 import Config
+
+sys.path.append("{{SYS_FRAMEWORKS}}/ReachSphere/Libraries/Endpoint")
+import enrollment_manager as endpoint
+
 
 def main():
     args = sys.argv
