@@ -135,10 +135,11 @@ class ObjectiveShellSession:
             # 2. Handle Space (Delimiters)
             if char.isspace() and quote_char is None:
                 if current_token:
-                    # Token complete, expand it
-                    raw_token = "".join(current_token)
-                    expanded = self._expand_token(raw_token)
-                    tokens.append(expanded)
+                    if len(current_token) == 1 and not isinstance(current_token[0], str):
+                        tokens.append(current_token[0])  # 객체 타입 보존
+                    else:
+                        raw_token = "".join([str(p) for p in current_token])
+                        tokens.append(self._expand_token(raw_token))
                     current_token = []
                 i += 1
                 continue
