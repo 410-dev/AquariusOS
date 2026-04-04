@@ -196,6 +196,7 @@ def _build_policy_result(
         "Name":        titles.get(policy_id, policy_id),           # 로컬라이제이션 없으면 키 자체를 이름으로 사용
         "Description": descriptions.get(policy_id, policy_id),     # 로컬라이제이션 없으면 키 자체를 설명으로 사용 (없느니만 못한 설명보다는 낫다고 판단)
         "Type":        row.get("value_type"),
+        "Selections":  row.get("selections"),
         "Value":       row.get("value"),
         "AppliedBy":   applied_by,
     }

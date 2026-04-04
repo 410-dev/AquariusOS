@@ -70,7 +70,7 @@ def build_create_sql(table_name: str, schema: dict) -> str:
 # ── 정책 행 upsert ────────────────────────────────────────────────────────────
 
 POLICY_COLUMNS = [
-    "polkey", "value_type", "uuid", "applicator",
+    "polkey", "value_type", "uuid", "applicator", "selections",
     "default_value", "source", "pol_file_digest"
 ]
 
@@ -85,6 +85,9 @@ def upsert_policies(cur: sqlite3.Cursor, table_name: str,
         applicator = props.get("applicator")
         applicator_str = json.dumps(applicator) if applicator is not None else None
 
+        selections = props.get("selections")
+        selections_str = json.dumps(selections) if selections is not None else None
+
         default_value = props.get("default_value")
         default_str = (
             json.dumps(default_value)
@@ -94,12 +97,13 @@ def upsert_policies(cur: sqlite3.Cursor, table_name: str,
 
         cur.execute(f"""
             INSERT INTO "{table_name}"
-                (polkey, value_type, uuid, applicator, default_value, source, pol_file_digest)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (polkey, value_type, uuid, applicator, selections, default_value, source, pol_file_digest)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(polkey) DO UPDATE SET
                 value_type      = excluded.value_type,
                 uuid            = excluded.uuid,
                 applicator      = excluded.applicator,
+                selections      = excluded.selections,
                 default_value   = excluded.default_value,
                 source          = excluded.source,
                 pol_file_digest = excluded.pol_file_digest
@@ -108,6 +112,7 @@ def upsert_policies(cur: sqlite3.Cursor, table_name: str,
             props.get("type"),
             props.get("uuid"),
             applicator_str,
+            selections_str,
             default_str,
             source,
             digest,

@@ -96,26 +96,26 @@ def _split_policy_id(policy_id: str) -> tuple[str, str]:
 
 
 # ── 레벨 검증 ─────────────────────────────────────────────────────────────────
-
-# 정책 레벨별로 허용되는 테이블 접두사
-_LEVEL_ALLOWED_TABLES: dict[str, set[str]] = {
-    "Domain":          {"Domain"},
-    "Site":            {"Site"},
-    "Group":           {"Group"},
-    "Machine":         {"Machine"},
-    "MachineOverride": {"MachineOverride"},
-    "User":            {"<username>"},   # 실제 검증 시 username 으로 대체
-}
-
-def _validate_table_for_level(table: str, level: str, username: str) -> bool:
-    """
-    정책 파일의 level 과 data 키의 테이블명이 일치하는지 검증합니다.
-    User 레벨은 username 테이블만 허용합니다.
-    """
-    if level == "User":
-        return table == username
-    allowed = _LEVEL_ALLOWED_TABLES.get(level, set())
-    return table in allowed
+#
+# # 정책 레벨별로 허용되는 테이블 접두사
+# _LEVEL_ALLOWED_TABLES: dict[str, set[str]] = {
+#     "Domain":          {"Domain"},
+#     "Site":            {"Site"},
+#     "Group":           {"Group"},
+#     "Machine":         {"Machine"},
+#     "MachineOverride": {"MachineOverride"},
+#     "User":            {"<username>"},   # 실제 검증 시 username 으로 대체
+# }
+#
+# def _validate_table_for_level(table: str, level: str, username: str) -> bool:
+#     """
+#     정책 파일의 level 과 data 키의 테이블명이 일치하는지 검증합니다.
+#     User 레벨은 username 테이블만 허용합니다.
+#     """
+#     if level == "User":
+#         return table == username
+#     allowed = _LEVEL_ALLOWED_TABLES.get(level, set())
+#     return table in allowed
 
 def _load_decoder() -> ModuleType:
     decoder_path = os.path.join(os.path.dirname(__file__), "Decode-RawPolicyFile.py")
@@ -222,11 +222,11 @@ def _apply_to_db(
                 continue
 
             # 2. 레벨 검증
-            if not _validate_table_for_level(table, level, username):
-                errors.append(
-                    f"'{policy_id}': 레벨 '{level}' 에서 테이블 '{table}' 은 허용되지 않습니다."
-                )
-                continue
+            # if not _validate_table_for_level(table, level, username):
+            #     errors.append(
+            #         f"'{policy_id}': 레벨 '{level}' 에서 테이블 '{table}' 은 허용되지 않습니다."
+            #     )
+            #     continue
 
             # 3. 레시피 DB 에서 유효 키 확인
             valid_keys = _get_recipe_valid_keys(recipe_cur, table)
@@ -244,6 +244,23 @@ def _apply_to_db(
             if raw_value is None:
                 errors.append(f"'{policy_id}': 'value' 필드가 없습니다.")
                 continue
+
+            # selections 확인 (레시피 DB 에서 조회)
+            recipe_cur.execute(
+                f'SELECT selections FROM "{table}" WHERE polkey = ?', (polkey,)
+            )
+            row = recipe_cur.fetchone()
+            if row and row[0]:
+                try:
+                    selections = json.loads(row[0])
+                    if selections and raw_value not in selections:
+                        errors.append(
+                            f"'{policy_id}': 값 '{raw_value}' 는 허용된 값이 아닙니다. "
+                            f"허용값: {selections}"
+                        )
+                        continue
+                except json.JSONDecodeError:
+                    log.warning(f"  '{policy_id}': selections 파싱 실패, 검증 건너뜀")
 
             try:
                 serialized_value, value_type = _serialize_value(policy_id, raw_value)
@@ -326,7 +343,7 @@ def main(
 ) -> tuple[int, dict]:
 
     db_path        = db_path        or DB_PATH
-    recipe_db_path = recipe_db_path or os.environ.get("MACHINEPOL_RECIPE_DB", "/var/lib/myapp/machinepol.db")
+    recipe_db_path = recipe_db_path or DB_PATH
 
     # 1. 디코더로 정책 파일 파싱 + 변수 치환
     decoder = _load_decoder()

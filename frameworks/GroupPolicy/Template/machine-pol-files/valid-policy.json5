@@ -39,6 +39,10 @@
             // [옵셔널] 정책이 적용되기 전에 장치에 존재하는 기본값 (예: "default-hostname") - 정책 엔진에서 정책이 적용될 때 참조하여 기본값으로 사용할 수 있음
             "type": "TEXT",
         },
+        "selections": {
+            // [옵셔널] 값이 가질 수 있는 옵션들 (예: "option1", "option2", "option3") - 정책 엔진에서 정책이 적용될 때 참조하여 유효한 값인지 확인할 때 사용할 수 있음
+            "type": "TEXT",
+        },
         "applied_at": {
             // 정책이 적용된 시점 Unix time
             "type": "INTEGER",
@@ -92,6 +96,11 @@
         }
     },
     "MachineOverride": {
+        "Timezone": {
+            "type": "string",
+            "applicator": ["/usr/bin/timedatectl", "set-timezone", "{value}"],
+            "default_value": "UTC"
+        },
         "PackagerControl/Enable": {
             "type": "boolean",
             "applicator": [],
@@ -99,6 +108,12 @@
         },
         "PackagerControl/EnforcedInstall": {
             "type": "set",
+            "applicator": [],
+            "default_value": []
+        },
+        "PackagerControl/SelectionTest": {
+            "type": "selection",
+            "selections": ["option1", "option2", "option3"],
             "applicator": [],
             "default_value": []
         },
