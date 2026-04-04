@@ -425,6 +425,14 @@ class Config(UserDict, ConfigBase):
             dump_data["_links"] = self.links
         return json.dumps(dump_data, indent=4, ensure_ascii=False)
 
+    def exists(self) -> bool:
+        if self.io_mode == 0:
+            return os.path.isfile(self.path)
+        elif self.io_mode == 1:
+            return any(os.path.isfile(p) for p in self.cascade_merge_priorities)
+        else:
+            raise ValueError(f"Invalid value for io_mode: {self.io_mode}")
+
     # ------------------------------------------------------------------
     # 내부 구현
     # ------------------------------------------------------------------

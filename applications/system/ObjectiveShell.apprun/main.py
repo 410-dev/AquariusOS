@@ -1,5 +1,6 @@
 from oscore import objectiveshell
-from oscore import libreg
+# from oscore import libreg
+from oscore.libconfig2 import Config
 
 import datetime
 import os
@@ -61,16 +62,25 @@ def parse_exec_variables(prompt: str, session: objectiveshell.ObjectiveShellSess
 
 def main():
 
-    # Reading registry for ObjectiveShell
-    env_list = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Environment", {})
-    paths = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Paths", "{{SYS_FRAMEWORKS}}/ObjectiveShell/Instructions/foundation:{{SYS_FRAMEWORKS}}/GroupPolicy/Commands")
-    dev_on = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Developer", False)
-    allow_fallback_to_bash = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/AllowFallbackToBash", False)
+    # Get configuration
+    config: Config = Config("me.hysong.osaqua.applications.ObjectiveShell").fetch()
+    env: dict[str, str] = config.get("Environment", {})
+    paths: str = config.get("Paths", "{{SYS_FRAMEWORKS}}/ObjectiveShell/Instructions/foundation:{{SYS_FRAMEWORKS}}/GroupPolicy/Commands")
+    dev_on: bool = config.get("Developer", False)
+    allow_fallback_to_bash: bool = config.get("AllowFallbackToBash", False)
 
-    env: dict[str, str] = {}
-    for key, value in env_list.items():
-        env[key] = libreg.read(f"SOFTWARE/Aqua/ObjectiveShell/Settings/Environment/{key}", "")
-        print(f"   Composing env: {env[key]}")
+    # Set if not exist
+    if not config.exists():
+        config["Environment"] = {
+            "OBJSHELL_HISTORY_ENABLE": "0",
+            "OBJSHELL_HISTORY_FILE": "{{SYS_FRAMEWORKS}}/ObjectiveShell/history.txt",
+            "OBJSHELL_PROMPT": "ObjectiveShell > ",
+            "OBJSHELL_PRINT_RETURNS": "1"
+        }
+        config["Paths"] = "{{SYS_FRAMEWORKS}}/ObjectiveShell/Instructions/foundation:{{SYS_FRAMEWORKS}}/GroupPolicy/Commands"
+        config["Developer"] = False
+        config["AllowFallbackToBash"] = False
+        config.sync()
 
     if dev_on:
         paths = f"{paths}:{{SYS_FRAMEWORKS}}/ObjectiveShell/Instructions/developers"
