@@ -171,6 +171,8 @@ def run(recipe_path: str, db_path: str | None = None, dry_run: bool = False):
     validate_meta(meta)
 
     schema = recipe.get("__table", {})
+    if meta["file"] == "SYS":
+        meta["file"] = DB_PATH
     db_path = db_path or meta["file"]
 
     # 2. 레시피 파일 digest 계산
