@@ -5,12 +5,26 @@ import importlib
 import json
 import sys
 from types import ModuleType
+import re
 
 _TYPE = "GroupPolicy.1"
 
-def _read_file(file_name: str) -> dict:
-    with open(file_name, "r", encoding="utf-8") as f:
-        return json.load(f)
+
+def strip_json5_comments(text: str) -> str:
+    """// 한 줄 주석과 trailing comma 를 제거해 표준 JSON 으로 변환합니다."""
+    # // 주석 제거 (문자열 내부 제외)
+    result = re.sub(r'//[^\n]*', '', text)
+    # trailing comma 제거  ,  } 또는 ,  ]
+    result = re.sub(r',\s*([}\]])', r'\1', result)
+    return result
+
+
+def _read_file(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        raw = f.read()
+    cleaned = strip_json5_comments(raw)
+    return json.loads(cleaned)
+
 
 def _check_file_integrity(data: dict) -> bool:
     # 호환성 체크
@@ -140,9 +154,14 @@ def main(session, file_name: str) -> tuple[int, dict]:
         if "vars" not in item:
             continue
 
+        type_matches = False
         for t in replaceable_types:
-            if not isinstance(item["vars"], t):
-                return 1, {"error": f"'vars' field in item '{key}' must be one of the following types: {', '.join([t.__name__ for t in replaceable_types])}."}
+            if isinstance(item["value"], t):
+                type_matches = True
+                break
+
+        if not type_matches:
+            return 1, {"error": f"'value' field in item '{key}' must be one of the following types: {', '.join([t.__name__ for t in replaceable_types])}, but got {type(item['value']).__name__}."}
 
         if not isinstance(item["vars"], list):
             continue
