@@ -63,7 +63,7 @@ def main():
 
     # Reading registry for ObjectiveShell
     env_list = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Environment", {})
-    paths = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Paths", "{{SYS_FRAMEWORKS}}/ObjectiveShell/Instructions/foundation")
+    paths = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Paths", "{{SYS_FRAMEWORKS}}/ObjectiveShell/Instructions/foundation:{{SYS_FRAMEWORKS}}/GroupPolicy/Commands")
     dev_on = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/Developer", False)
     allow_fallback_to_bash = libreg.read("SOFTWARE/Aqua/ObjectiveShell/Settings/AllowFallbackToBash", False)
 
