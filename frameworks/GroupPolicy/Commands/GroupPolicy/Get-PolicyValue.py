@@ -44,7 +44,9 @@ import getpolvalcommon
 
 
 
-def main(session, username: str, policies_to_read: list[str]) -> tuple[int, list[dict] | str]:
+def udef_main(session, username: str, policies_to_read: list[str]) -> tuple[int, list[dict] | str]:
+    if isinstance(policies_to_read, str):
+        policies_to_read = [policies_to_read]
     return getpolvalcommon.fetch_policy_data(username, policies_to_read)
 
 
@@ -53,7 +55,7 @@ if __name__ == '__main__':
         print("Usage: Get-PolicyValue <user> <PolicyKey> [PolicyKey2 ...]", file=sys.stderr)
         sys.exit(1)
 
-    exit_code, output = main(None, sys.argv[1], sys.argv[2:])
+    exit_code, output = udef_main(None, sys.argv[1], sys.argv[2:])
 
     if exit_code != 0:
         print(f"Failed to load policy value: {output}", file=sys.stderr)

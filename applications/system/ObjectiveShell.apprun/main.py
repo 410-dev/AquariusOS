@@ -61,6 +61,12 @@ def parse_exec_variables(prompt: str, session: objectiveshell.ObjectiveShellSess
 
     return prompt
 
+_BLOCK_VAR = "__block__"
+
+def execute_with_block(session, raw_line, block):
+    session.variables[_BLOCK_VAR] = block
+    parsed = session.parse_line(raw_line + " ${var:__block__}")
+    return session.execute_line(parsed)
 
 def main():
 
@@ -112,12 +118,23 @@ def main():
     if cmdline_input:
         # Check if the first argument is a file
         if os.path.isfile(cmdline_input[0]):
+            # with open(cmdline_input[0], "r") as script_file:
+            #     for line in script_file:
+            #         parsed_line = session.parse_line(line.strip())
+            #         result = session.execute_line(parsed_line)
+            #         if result.returns is not None and session.environment.get("OBJSHELL_PRINT_RETURNS", "1"):
+            #             print(result.returns)
             with open(cmdline_input[0], "r") as script_file:
-                for line in script_file:
-                    parsed_line = session.parse_line(line.strip())
-                    result = session.execute_line(parsed_line)
-                    if result.returns is not None and session.environment.get("OBJSHELL_PRINT_RETURNS", "1"):
-                        print(result.returns)
+                lines = script_file.readlines()
+                lines_iter = iter(lines)
+                for line in lines_iter:
+                    stripped = line.strip()
+                    if stripped.endswith("{"):
+                        block = session.collect_block(lines_iter)
+                        result = execute_with_block(session, stripped[:-1].strip(), block)
+                    else:
+                        parsed_line = session.parse_line(stripped)
+                        result = session.execute_line(parsed_line)
             return result.exit_code
         else:
             # Otherwise, treat the arguments as a single command
@@ -142,11 +159,21 @@ def main():
                     with open(history_file_path, "a") as history_file:
                         history_file.write(raw_input + "\n")
 
-            parsed_line = session.parse_line(raw_input)
+            parsed_line = []
+            if raw_input.rstrip().endswith("{"):
+                block = []
+                while True:
+                    block_line = input("... ")
+                    if block_line.strip() == "}":
+                        break
+                    block.append(block_line.strip())
+                start_time = datetime.datetime.now()
+                result = execute_with_block(session, raw_input.rstrip()[:-1].strip(), block)
+            else:
+                start_time = datetime.datetime.now()
+                parsed_line = session.parse_line(raw_input)
+                result = session.execute_line(parsed_line)
 
-            # Start timing execution
-            start_time = datetime.datetime.now()
-            result = session.execute_line(parsed_line)
             end_time = datetime.datetime.now()
 
             elapsed_time = (end_time - start_time).total_seconds()

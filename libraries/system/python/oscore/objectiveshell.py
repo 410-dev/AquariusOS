@@ -203,6 +203,19 @@ class ObjectiveShellSession:
 
         return tokens
 
+    def collect_block(self, lines_iter) -> list[str]:
+        """
+        { 이후의 라인을 } 가 나올 때까지 수집해서 반환.
+        lines_iter: next()를 호출할 수 있는 이터레이터
+        """
+        block = []
+        for line in lines_iter:
+            stripped = line.strip()
+            if stripped == "}":
+                break
+            block.append(stripped)
+        return block
+
     def _resolve_paths(self) -> List[str]:
         """
         Generates search paths in priority order:
