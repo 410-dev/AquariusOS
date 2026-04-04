@@ -1,0 +1,117 @@
+{
+    // 본 파일은 정책 엔진에서 데이터베이스를 구성할 때 사용하거나, 특정 키값이 유효한지 확인하기 위해 존재하는 파일입니다.
+    // 키값을 수정하면 정책 엔진에서 해당 키값이 유효한지 확인할 때 참조하게 됩니다.
+    // 수정이 필요한 경우 반드시 백업을 만들어 두고, 관련 데몬을 재시작하여 변경사항이 반영되도록 해야 합니다.
+
+    "__meta": {
+        "file": "SYS",
+        "format": 1,
+    },
+
+    "__table": {
+        "id": { // 정책 엔진에서 자동으로 생성되는 장치에 대한 고유 ID 이지만 실제로는 사용되지 않음. 향후 확장성을 위해 남겨둠
+            "type": "INTEGER",
+            "primary_key": true,
+            "auto_increment": true
+        },
+        "polkey": { // 정책 키 (예: "Hostname")
+            "type": "TEXT",
+            "unique": true,
+        },
+        "value": { // 정책 값 (예: "example-hostname")
+            "type": "TEXT",
+        },
+        "uuid": {
+            // [옵셔널] 정책의 고유 식별자 (예: "123e4567-e89b-12d3-a456-426614174000") - 선택적이며, 없다면 참조하지 않음
+            "type": "TEXT",
+        },
+        "value_type": {
+            // 값의 타입 (예: "string", "number", "boolean", "json", "directory" 등 - 정책 엔진에서 해석할 때 참고)
+            // directory 타입은 정책 엔진에서 카테고리별로 분류할때 사용할 수 있음. 엔진에서 반환은 string 과 동일하게 처리됨
+            "type": "TEXT",
+        },
+        "applicator": {
+            // [옵셔널] 이 정책이 적용될 때, 장치에 적용하기 위해 실행되는 명령어
+            // 예: "["/usr/bin/setvalue", "--key", "{polkey}", "--value", "{value}"]" - 정책 엔진에서 정책이 적용될 때 참조하여 명령어를 실행
+            "type": "TEXT",
+        },
+        "default_value": {
+            // [옵셔널] 정책이 적용되기 전에 장치에 존재하는 기본값 (예: "default-hostname") - 정책 엔진에서 정책이 적용될 때 참조하여 기본값으로 사용할 수 있음
+            "type": "TEXT",
+        },
+        "applied_at": {
+            // 정책이 적용된 시점 Unix time
+            "type": "INTEGER",
+        },
+        "applied_by_pol_id": {
+            // 이 정책을 적용한 정책 JSON 파일의 ID (예: "policy-abc") - 정책 엔진에서 정책이 적용될 때 기록
+            "type": "TEXT",
+        },
+        "applied_by_pol_name": {
+            // 이 정책을 적용한 정책 JSON 파일의 이름 (예: "Policy ABC") - 정책 엔진에서 정책이 적용될 때 기록
+            "type": "TEXT",
+        },
+        "applied_by_pol_level": {
+            // 이 정책을 적용한 정책 JSON 파일의 수준 (예: "Machine") - 정책 엔진에서 정책이 적용될 때 기록
+            "type": "TEXT",
+        },
+        "applied_by_pol_user": {
+            // 이 정책을 적용한 정책 JSON 파일의 사용자 (예: "john@example.com") - 정책 엔진에서 정책이 적용될 때 기록 (User 수준인 경우에만 기록)
+            "type": "TEXT",
+        },
+        "source": {
+            // 이 정책이 적용된 원본 (예: "policy-abc.json5") - 정책 엔진에서 정책이 적용될 때 기록
+            "type": "TEXT",
+        },
+        "pol_file_digest": {
+            // 이 정책이 적용된 정책 JSON 파일의 해시값 (예: "abc123def456") - 정책 엔진에서 정책이 적용될 때 기록
+            "type": "TEXT",
+        },
+        "by_user": {
+            // 이 정책을 적용할때 사용된 실제 사용자 이름 (예: "john") - 정책 엔진에서 정책이 적용될 때 기록
+            "type": "TEXT",
+        },
+        "by_process": {
+            // 이 정책을 적용할때 사용된 실제 프로세스의 커맨드라인 - 정책 엔진에서 정책이 적용될 때 기록
+            "type": "TEXT",
+        }
+    },
+
+    // 여기서부터 테이블 형식으로 정책을 정의할 수 있음
+    // 이 파일에 없는 정책은 유효하지 않은 정책으로 간주되어 정식으로 지원하지 않음.
+    "Current": {}, // 호환성 체크를 위해 현재 데이터베이스의 정보를 기록. 이 테이블은 Daemon 에서 읽을 수 없음.
+    "Domain": {},
+    "Site": {},
+    "Group": {},
+    "Machine": {
+        "Hostname": { // 엔진의 액세스 키는 "Machine/Hostname" 이지만, 실제 테이블에서는 "Hostname" 으로 저장됨
+            "type": "string",
+            "uuid": "4c4c241a-0ce3-4cb0-bc21-f47ba26e039c",
+            "applicator": ["/usr/bin/hostnamectl", "{value}"], // 이 정책이 적용될 때 실행되는 명령어 예시
+            "default_value": "default-hostname" // 이 정책이 적용되기 전에 장치에 존재하는 기본값 예시
+        }
+    },
+    "MachineOverride": {
+        "PackagerControl/Enable": {
+            "type": "boolean",
+            "applicator": [],
+            "default_value": false
+        },
+        "PackagerControl/EnforcedInstall": {
+            "type": "set",
+            "applicator": [],
+            "default_value": []
+        },
+        "PackagerControl/Blacklisted": {
+            "type": "set",
+            "applicator": [],
+            "default_value": []
+        },
+        "PackagerControl/Locked": {
+            "type": "set",
+            "applicator": [],
+            "default_value": []
+        }
+    },
+    "<username>": {} // 사용자별 정책은 사용자 이름을 테이블 이름으로 사용
+}

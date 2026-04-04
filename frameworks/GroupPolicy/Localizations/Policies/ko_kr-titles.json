@@ -1,0 +1,8 @@
+{
+    "Machine/Hostname": "호스트 이름",
+    "Machine/Domain": "도메인",
+    "MachineOverride/Timezone": "시간대",
+    "MachineOverride/PackagerControl": "패키저 제어",
+    "MachineOverride/PackagerControl/Enable": "사용",
+    "MachineOverride/PackagerControl/Disable": "사용 안 함"
+}

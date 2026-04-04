@@ -1,0 +1,44 @@
+{
+    "type": "GroupPolicy.1",
+    "id": "policy-abc", // Unique ID for the policy
+    "name": "Policy ABC", // Display name for the policy
+    "level": "Machine", // 적용될 우선순위 수준: "Domain" > "Site" > "Group" > "Machine" > "User" > "MachineOverride"
+    "user": "john@example.com", // 정책 적용 대상 사용자 (User 수준인 경우에만 필요)
+    "modules": [
+        // 값을 불러올때 사용할 모듈 - 비어있지 않으면 Injection 위험을 띄움
+        "conf_read"
+    ],
+    "module_exec": {
+        "existing_hostname": {
+            "module": "conf_read",
+            "param": {
+                "key": ["MachineName"],
+                "path": "Aqua/System",
+                "enforce_global": true
+            }
+        }
+    },
+    "data": {
+
+        // 장치에 직접 설정되므로, Machine / User / MachineOverride 중 하나로 시작해야 함
+        "Machine/Hostname": {
+            "vars": ["existing_hostname"], // module_exec 에 정의된 existing_hostname 변수를 참조하여 사용할 수 있음
+            "value": "{existing_hostname}-abc" // 기존 호스트명에 -abc 를 붙여서 새 호스트명으로 설정
+        },
+        "MachineOverride/Timezone": {
+            "value": "UTC+9"
+        },
+        "MachineOverride/PackagerControl/Enable": {
+            "value": true
+        },
+        "MachineOverride/PackagerControl/EnforcedInstall": {
+            "value": ["com.example.app1"] // 설치가 강제되는 패키지 목록 예시
+        },
+        "MachineOverride/PackagerControl/Blacklisted": {
+            "value": ["com.example.app3"] // 설치가 금지되는 패키지 목록 예시. EnforcedInstall 과 충돌시, EnforcedInstall 이 우선 적용됨
+        },
+        "MachineOverride/PackagerControl/Locked": {
+            "value": ["com.example.app2"] // 설치 여부와 상관없이 변경이 금지되는 패키지 목록 예시. EnforcedInstall 이 충족된 후 적용됨
+        }
+    }
+}
