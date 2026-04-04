@@ -1,6 +1,7 @@
 from oscore import objectiveshell
 # from oscore import libreg
 from oscore.libconfig2 import Config
+from AppContext import AppContext
 
 import datetime
 import os
@@ -8,6 +9,7 @@ import subprocess
 import readline
 import sys
 
+context: AppContext = AppContext()
 
 # AVBL Keys for env vars
 # OBJSHELL_HISTORY_ENABLE (0/1) - Enable/Disable command history
@@ -73,7 +75,7 @@ def main():
     if not config.exists():
         config["Environment"] = {
             "OBJSHELL_HISTORY_ENABLE": "0",
-            "OBJSHELL_HISTORY_FILE": "{{SYS_FRAMEWORKS}}/ObjectiveShell/history.txt",
+            "OBJSHELL_HISTORY_FILE": context.file_in_box("history.txt"),
             "OBJSHELL_PROMPT": "ObjectiveShell > ",
             "OBJSHELL_PRINT_RETURNS": "1"
         }
