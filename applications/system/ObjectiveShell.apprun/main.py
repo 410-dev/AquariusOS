@@ -64,7 +64,7 @@ def parse_exec_variables(prompt: str, session: objectiveshell.ObjectiveShellSess
 _BLOCK_VAR = "__block__"
 
 def execute_with_block(session, raw_line, block):
-    session.variables[_BLOCK_VAR] = block
+    session.variables[_BLOCK_VAR] = [block]
     parsed = session.parse_line(raw_line + " ${var:__block__}")
     return session.execute_line(parsed)
 
@@ -205,10 +205,9 @@ def main():
                     exit_code = -1
 
             if result.returns is not None and session.environment.get("OBJSHELL_PRINT_RETURNS", "1"):
-
-                # Only if command is not echo.
-                if parsed_line[0] != "echo":
+                if not parsed_line or parsed_line[0] != "echo":
                     print(result.returns)
+
 
         except (EOFError, KeyboardInterrupt):
             print("\nExiting ObjectiveShell.")
