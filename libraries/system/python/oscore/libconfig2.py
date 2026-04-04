@@ -241,6 +241,13 @@ class Config(UserDict, ConfigBase):
             home_path = os.path.expanduser("~/Library/Application Support/" + path)
             global_path = "/Library/Application Support/" + path
 
+        # If supports AppContext, then use <box>/configs/<path>
+        try:
+            from AppContext import AppContext
+            home_path = AppContext().file_in_box("configs/" + path)
+        except ImportError:
+            pass
+
         if cascade_merge_mode and not cascade:
             self._log("cascade_merge_mode is True but cascade is False. Enabling cascade mode.")
             cascade = True
