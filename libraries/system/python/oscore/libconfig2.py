@@ -319,6 +319,15 @@ class Config(UserDict, ConfigBase):
             parent_key=key,
         )
 
+    def to_view(self) -> ConfigView:
+        return ConfigView(
+            value=self.data,
+            key_path="",
+            root_config=self,
+            parent_data=None,
+            parent_key=None,
+        )
+
     def ensure(self, keys: list[str]) -> "Config":
         for key in keys:
             if key not in self.data and (not self.resolve_pattern or key not in self.links):
