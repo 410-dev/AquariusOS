@@ -1,4 +1,7 @@
 {
+
+    // 본 파일은 Decode-RawPolicyFile 을 거치거나, Apply-Policy 를 사용해야 합니다.
+
     "type": "GroupPolicy.1",
     "id": "policy-abc", // Unique ID for the policy
     "name": "Policy ABC", // Display name for the policy
