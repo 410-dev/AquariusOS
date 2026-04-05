@@ -1,0 +1,15 @@
+codeblock apply_policy {
+    GroupPolicy Set-PolicyValue ${loop:item} MachineOverride/Timezone "UTC+9"
+}
+
+codeblock skip {
+    echo "skipping ${loop:item}"
+}
+
+foreach $(GroupPolicy Get-Devices) {
+    set var is_managed = $(GroupPolicy Get-PolicyValue user:useragent pol:MachineOverride/Managed)
+    jump apply_policy if $(isNull ${var:is_managed}) or $(not ${var:is_managed})
+    jump skip
+}
+
+
