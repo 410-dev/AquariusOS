@@ -6,26 +6,25 @@ import sys
 import subprocess
 import os
 
-# Include {{SYS_PYLIBS}}
-sys.path.insert(0, "{{SYS_PYLIBS}}")
+import oscore.libgpread as policy
 
-from oscore import libreg as reg
-
-
-def _chk_registry_protect_mode(package_name: str) -> bool:
-    key_path = f"SOFTWARE/Policies/ProtectedPackages/{package_name}"
-    protected = reg.read(key_path, 0)
-    if protected == 1:
+def _is_package_locked(package_name: str) -> bool:
+    # key_path = f"SOFTWARE/Policies/ProtectedPackages/{package_name}"
+    key_path = "MachineOverride/PackagerControl/Locked"
+    empty_set = set()
+    data: set = policy.get_value("", key_path, empty_set)
+    if package_name in data:
         return False  # Cannot remove protected package
     return True
 
 
 def _chk_registry_install_mode(package_name: str) -> bool:
-    key_path = f"SOFTWARE/Policies/BlacklistedPackages/{package_name}"
-    protected = reg.read(key_path, 0)
-    if protected == 1:
+    key_path = "MachineOverride/PackagerControl/Blacklisted"
+    empty_set = set()
+    data: set = policy.get_value("", key_path, empty_set)
+    if package_name in data:
         return False  # Cannot install blacklisted package
-    return _chk_registry_protect_mode(package_name)
+    return _is_package_locked(package_name)
 
 
 def _local_id(raw_args: list[str], install_mode: bool) -> int:
@@ -49,7 +48,7 @@ def _local_id(raw_args: list[str], install_mode: bool) -> int:
                 if not _chk_registry_install_mode(package_name):
                     return 1  # Block installation
             else:
-                if not _chk_registry_protect_mode(package_name):
+                if not _is_package_locked(package_name):
                     return 1  # Block removal
 
         # Not package name
@@ -95,7 +94,7 @@ def _file_path(raw_args: list[str], install_mode: bool) -> int:
                         if not _chk_registry_install_mode(package_name):
                             return 1  # Block installation
                     else:
-                        if not _chk_registry_protect_mode(package_name):
+                        if not _is_package_locked(package_name):
                             return 1  # Block removal
             except subprocess.CalledProcessError as e:
                 print(f"Error fetching package name from {element}: {e}", file=sys.stderr)
