@@ -22,7 +22,9 @@ def udef_main(session, list_object: list, command_components: list):
                     .replace("${loop:item}", str(item))
                 cmd_result = session.execute_line(session.parse_line(current_line.strip()))
                 last_result = cmd_result
-            result[item] = {
+            result[i] = {
+                "index": i,
+                "item": item,
                 "return_code": last_result.exit_code if last_result else 0,
                 "output": last_result.returns if last_result else None
             }
@@ -35,7 +37,7 @@ def udef_main(session, list_object: list, command_components: list):
                 for token in command_components
             ]
             cmd_result = session.execute_line(cmd_tokens)
-            result[item] = {
+            result[i] = {
                 "index": i,
                 "item": item,
                 "return_code": cmd_result.exit_code,
