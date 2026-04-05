@@ -145,6 +145,21 @@ def _run_applicator(applicator_json: str | None, polkey: str, value: str):
     if not cmd:  # 빈 리스트
         return
 
+    # 만약 {value.asIterable} 이 있다면, 해당 값 위치에 value 를 리스트로 변환하여 치환
+    if "{value.asIterable}" in cmd:
+        try:
+            value_list = json.loads(value) if value else []
+            if not isinstance(value_list, list) and not isinstance(value_list, set):
+                raise ValueError("value.asIterable 플레이스홀더는 리스트 / 세트 타입이어야 합니다.")
+            begin_idx = cmd.index("{value.asIterable}")
+            cmd = cmd[:begin_idx] + [str(v) for v in value_list] + cmd[begin_idx + 1:]
+        except json.JSONDecodeError:
+            log.warning(f"  value.asIterable 플레이스홀더 치환 실패, value 가 리스트가 아님: {value}")
+            return
+        except ValueError as e:
+            log.warning(f"  value.asIterable 플레이스홀더 치환 실패: {e}")
+            return
+
     # 플레이스홀더 치환
     cmd = [
         arg.replace("{polkey}", polkey).replace("{value}", value)

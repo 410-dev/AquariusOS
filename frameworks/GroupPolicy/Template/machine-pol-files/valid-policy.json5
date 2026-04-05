@@ -105,12 +105,12 @@
         },
         "PackagerControl/Enable": {
             "type": "boolean",
-            "applicator": [],
+            "applicator": ["{{SYS_FRAMEWORKS}}/GroupPolicy/Resources/dpkg/enable.sh", "{value}"],
             "default_value": false
         },
         "PackagerControl/EnforcedInstall": {
             "type": "set",
-            "applicator": [],
+            "applicator": ["apt", "install", "-y", "{value.asIterable}"],
             "default_value": []
         },
         "PackagerControl/SelectionTest": {
@@ -121,7 +121,7 @@
         },
         "PackagerControl/Blacklisted": {
             "type": "set",
-            "applicator": [],
+            "applicator": ["apt", "remove", "-y", "{value.asIterable}"],
             "default_value": []
         },
         "PackagerControl/Locked": {

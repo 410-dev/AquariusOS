@@ -72,7 +72,7 @@ def _get_locale(cur: sqlite3.Cursor, username: str) -> str:
         return row[0] if row and row[0] else None
 
     # 1. 유저별 로케일
-    if username:
+    if username is not None and username:
         locale = _query(username, "LanguageAndRegion/PreferredLocale")
         if locale:
             return locale.lower().replace("-", "_")  # "ko-KR" → "ko_kr" 정규화
